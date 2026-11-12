@@ -5887,6 +5887,7 @@ function smoothRemotePlayers(dt) {
                 time: match.time,
                 elapsed: match.elapsed,
                 killLimit: match.killLimit,
+				antiCheat: window.XR47AntiCheat?.getStatus?.() || null,
                 ended: match.ended
             } : null,
 
@@ -6050,10 +6051,10 @@ function smoothRemotePlayers(dt) {
             fighter.angle = input.angle;
 
             if (input.shooting) {
-                original.fireWeapon(
-                    fighter,
-                    fighter.angle
-                );
+                fireWeapon(
+    fighter,
+    fighter.angle
+);
             }
         }
     }
@@ -6100,6 +6101,10 @@ peer.on("xr47:host-left", data => {
         });
 
         peer.on("xr47:input", input => {
+		    if (
+        window.XR47AntiCheat &&
+        !window.XR47AntiCheat.validateRemoteInput(id, input)
+    ) return;
             if (!isHost || !input) return;
 
             const fighter = remotePlayers.find(p => p.id === id);
@@ -6135,11 +6140,16 @@ peer.on("xr47:host-left", data => {
             }
         });
 
-        peer.on("xr47:snapshot", state => {
-            if (id === hostId) {
-                receiveSnapshot(state);
-            }
-        });
+       peer.on("xr47:snapshot", state => {
+    if (id === hostId) {
+        if (
+            window.XR47AntiCheat &&
+            !window.XR47AntiCheat.validateSnapshot(state)
+        ) return;
+
+        receiveSnapshot(state);
+    }
+});
 
         peer.on("xr47:kill", data => {
             if (!data) return;
@@ -6855,6 +6865,13 @@ drawGame = function() {
 
     async function saveRankedResult() {
         if (!window.XR47RankedActive) return;
+		if (
+    window.XR47AntiCheat &&
+    !window.XR47AntiCheat.validateRankedResult()
+) {
+    console.warn("[XR-47 Anti-Cheat] Ranked result rejected.");
+    return;
+}
 
         if (!window.XR47Online?.connected) {
             return;
@@ -7371,8 +7388,22 @@ finishMatch = function() {
         });
 
         window.XR47RankedActive = false;
-    } else if (wasNewCompletion) {
-        casualProgress.matches++;
+   } else if (wasNewCompletion) {
+
+    if (
+        window.XR47AntiCheat &&
+        !window.XR47AntiCheat.allowCasualCompletion({
+            won: casualWon
+        })
+    ) {
+        console.warn(
+            "[XR-47 Anti-Cheat] Casual completion rejected."
+        );
+
+        return result;
+    }
+
+    casualProgress.matches++;
 
         if (casualWon) {
             casualProgress.wins++;
@@ -7460,6 +7491,1471 @@ finishMatch = function() {
             return [...leaderboard];
         }
     };
+
+})();
+</script>
+
+<script>
+(() => {
+    "use strict";
+
+    // =========================================================
+    // XR-47 ANTI-CHEAT v1.0
+    // Client-side combat, movement, storage and match validation.
+    // =========================================================
+
+    const VERSION = "1.0.0";
+    const UNLOCK_KEY = "xr47-ranked-unlock-v1";
+
+    const MAX_VIOLATIONS = 200;
+    const DAMAGE_MEMORY_MS = 5000;
+    const KILL_FARM_WINDOW_MS = 120000;
+
+    let enabled = true;
+    let activeAttacker = null;
+    let activeShotDamage = 0;
+
+    let damageLedger = new WeakMap();
+    let fighterStates = new WeakMap();
+
+    let violations = [];
+    let violationTimes = new Map();
+    let suspiciousPlayers = new Map();
+
+    let matchFlags = new Set();
+    let killPairs = new Map();
+    let snapshotStats = new Map();
+    let inputTimes = new Map();
+
+    let currentMatch = null;
+    let previousMatchEnded = false;
+    let previousElapsed = 0;
+
+    let pendingCompletion = null;
+
+    // ---------------------------------------------------------
+    // STORAGE BASELINE
+    // ---------------------------------------------------------
+
+    function readUnlockProgress() {
+        try {
+            const saved = JSON.parse(
+                localStorage.getItem(UNLOCK_KEY)
+            );
+
+            return {
+                matches: Math.max(
+                    0,
+                    Math.floor(Number(saved?.matches) || 0)
+                ),
+                wins: Math.max(
+                    0,
+                    Math.floor(Number(saved?.wins) || 0)
+                )
+            };
+        } catch {
+            return { matches: 0, wins: 0 };
+        }
+    }
+
+    let expectedUnlock = readUnlockProgress();
+    let permitUnlockWrite = false;
+
+    function sameProgress(a, b) {
+        return !!a && !!b &&
+            a.matches === b.matches &&
+            a.wins === b.wins;
+    }
+
+    // ---------------------------------------------------------
+    // VIOLATION MANAGER
+    // ---------------------------------------------------------
+
+    function identify(fighter) {
+        if (!fighter) return "UNKNOWN";
+
+        return String(
+            fighter.id ??
+            fighter.name ??
+            "UNKNOWN"
+        );
+    }
+
+    function report(code, details, severity = "medium", fighter = null) {
+        const now = Date.now();
+        const id = identify(fighter);
+        const key = code + ":" + id;
+
+        const last = violationTimes.get(key) || 0;
+
+        // Prevent the same violation from flooding the log.
+        if (now - last < 2000) return;
+
+        violationTimes.set(key, now);
+
+        const entry = {
+            code,
+            details: String(details || ""),
+            severity,
+            player: id,
+            timestamp: now,
+            match: currentMatch === match
+        };
+
+        violations.push(entry);
+
+        if (violations.length > MAX_VIOLATIONS) {
+            violations.shift();
+        }
+
+        if (severity === "high" || severity === "critical") {
+            matchFlags.add(code);
+        }
+
+        if (fighter) {
+            suspiciousPlayers.set(id, {
+                score: Math.min(
+                    100,
+                    (suspiciousPlayers.get(id)?.score || 0) +
+                    (severity === "critical" ? 40 :
+                     severity === "high" ? 20 : 5)
+                ),
+                lastViolation: code,
+                updatedAt: now
+            });
+        }
+
+        console.warn(
+            "[XR-47 Anti-Cheat]",
+            severity.toUpperCase(),
+            code,
+            details,
+            fighter || ""
+        );
+    }
+
+    // ---------------------------------------------------------
+    // MATCH TRACKING
+    // ---------------------------------------------------------
+
+    function resetMatchTracking() {
+        damageLedger = new WeakMap();
+        fighterStates = new WeakMap();
+
+        matchFlags.clear();
+        killPairs.clear();
+        snapshotStats.clear();
+        inputTimes.clear();
+
+        previousElapsed = 0;
+
+        console.info(
+            "[XR-47 Anti-Cheat] New match tracking session."
+        );
+    }
+
+    function syncMatch() {
+        if (!match) return;
+
+        const elapsed = Number(match.elapsed) || 0;
+
+        const newMatch =
+            match !== currentMatch ||
+            (previousMatchEnded && !match.ended) ||
+            elapsed + 2 < previousElapsed;
+
+        if (newMatch) {
+            currentMatch = match;
+            resetMatchTracking();
+        }
+
+        previousMatchEnded = !!match.ended;
+        previousElapsed = elapsed;
+    }
+
+    // ---------------------------------------------------------
+    // FIGHTER IDENTIFICATION
+    // ---------------------------------------------------------
+
+    function isHumanPlayer(fighter) {
+        if (!fighter) return false;
+
+        if (fighter === player || fighter.isPlayer) {
+            return true;
+        }
+
+        // Remote fighters use their WebRTC peer IDs.
+        return !!window.XR47Online?.connected &&
+            fighter !== player &&
+            typeof fighter.id === "string" &&
+            fighter.id.length >= 4;
+    }
+
+    function allFighters() {
+        return [
+            player,
+            ...(Array.isArray(bots) ? bots : [])
+        ].filter(Boolean);
+    }
+
+    // ---------------------------------------------------------
+    // HEALTH MONITORING
+    // ---------------------------------------------------------
+
+    function instrumentFighter(fighter) {
+        if (!fighter || typeof fighter !== "object") return;
+
+        if (fighterStates.has(fighter)) return;
+
+        const state = {
+            lastShotAt: 0,
+            lastX: Number(fighter.x) || 0,
+            lastY: Number(fighter.y) || 0,
+            wasAlive: !!fighter.alive,
+            previousSpawnShield: Number(fighter.spawnShield) || 0,
+            kills: 0,
+            headshots: 0
+        };
+
+        fighterStates.set(fighter, state);
+
+        const descriptor = Object.getOwnPropertyDescriptor(
+            fighter,
+            "health"
+        );
+
+        if (
+            descriptor &&
+            (descriptor.get || descriptor.set)
+        ) {
+            return;
+        }
+
+        let health = Number(fighter.health);
+
+        Object.defineProperty(fighter, "health", {
+            configurable: true,
+            enumerable: true,
+
+            get() {
+                return health;
+            },
+
+            set(value) {
+                const next = Number(value);
+
+                if (!Number.isFinite(next)) {
+                    report(
+                        "invalid-health",
+                        "A non-finite health value was rejected.",
+                        "critical",
+                        fighter
+                    );
+
+                    return;
+                }
+
+                const previous = health;
+
+                if (
+                    next < previous &&
+                    activeAttacker &&
+                    activeAttacker !== fighter &&
+                    activeAttacker.alive &&
+                    fighter.alive &&
+                    fighter.spawnShield <= 0
+                ) {
+                    recordDamage(
+                        activeAttacker,
+                        fighter,
+                        previous - next
+                    );
+                }
+
+                health = next;
+            }
+        });
+    }
+
+    function instrumentAll() {
+        for (const fighter of allFighters()) {
+            instrumentFighter(fighter);
+        }
+    }
+
+    // ---------------------------------------------------------
+    // DAMAGE LEDGER
+    // ---------------------------------------------------------
+
+    function recordDamage(attacker, victim, amount) {
+        if (
+            !attacker ||
+            !victim ||
+            attacker === victim ||
+            !Number.isFinite(amount) ||
+            amount <= 0
+        ) {
+            return;
+        }
+
+        let attackers = damageLedger.get(victim);
+
+        if (!attackers) {
+            attackers = new Map();
+            damageLedger.set(victim, attackers);
+        }
+
+        let record = attackers.get(attacker);
+
+        if (!record) {
+            record = {
+                total: 0,
+                hits: 0,
+                lastAt: 0
+            };
+
+            attackers.set(attacker, record);
+        }
+
+        record.total += amount;
+        record.hits++;
+        record.lastAt = Date.now();
+
+        activeShotDamage += amount;
+    }
+
+    // ---------------------------------------------------------
+    // KILL-FARM DETECTION
+    // ---------------------------------------------------------
+
+    function recordPlayerKill(killer, victim) {
+        if (
+            !isHumanPlayer(killer) ||
+            !isHumanPlayer(victim) ||
+            killer === victim
+        ) {
+            return;
+        }
+
+        const a = identify(killer);
+        const b = identify(victim);
+
+        const sorted = [a, b].sort();
+
+        const key = sorted.join("|");
+
+        let record = killPairs.get(key);
+
+        if (!record) {
+            record = {
+                a: sorted[0],
+                b: sorted[1],
+                aToB: [],
+                bToA: []
+            };
+
+            killPairs.set(key, record);
+        }
+
+        const now = Date.now();
+
+        for (const direction of [
+            record.aToB,
+            record.bToA
+        ]) {
+            while (
+                direction.length &&
+                now - direction[0] > KILL_FARM_WINDOW_MS
+            ) {
+                direction.shift();
+            }
+        }
+
+        if (a === record.a) {
+            record.aToB.push(now);
+        } else {
+            record.bToA.push(now);
+        }
+
+        const total =
+            record.aToB.length +
+            record.bToA.length;
+
+        // Repeated reciprocal kill trading.
+        if (
+            total >= 8 &&
+            record.aToB.length >= 3 &&
+            record.bToA.length >= 3
+        ) {
+            report(
+                "kill-trading",
+                "Repeated reciprocal eliminations between the same players.",
+                "high",
+                killer
+            );
+        }
+
+        // Repeated one-sided farming.
+        if (
+            record.aToB.length >= 8 ||
+            record.bToA.length >= 8
+        ) {
+            report(
+                "repeated-target",
+                "One player repeatedly eliminated the same opponent.",
+                "high",
+                killer
+            );
+        }
+    }
+
+    // ---------------------------------------------------------
+    // WEAPON FIRE VALIDATION
+    // ---------------------------------------------------------
+
+    const previousCreateFighter = createFighter;
+
+    createFighter = function(...args) {
+        const fighter = previousCreateFighter.apply(this, args);
+
+        instrumentFighter(fighter);
+
+        return fighter;
+    };
+
+    const previousFireWeapon = fireWeapon;
+
+    fireWeapon = function(fighter, angle, fromAI = false) {
+	        // Non-host clients send shooting input to the host.
+        // They do not locally consume ammunition.
+        if (
+            fighter === player &&
+            window.XR47Online?.connected &&
+            !window.XR47Online.host
+        ) {
+            return previousFireWeapon.apply(this, arguments);
+        }
+        if (!fighter) {
+            return previousFireWeapon.apply(this, arguments);
+        }
+
+        instrumentAll();
+        instrumentFighter(fighter);
+
+        const eligible =
+            fighter.alive &&
+            fighter.reloading <= 0 &&
+            fighter.fireTimer <= 0 &&
+            fighter.ammo > 0;
+
+        const ammoBefore = Number(fighter.ammo);
+
+        const previousAttacker = activeAttacker;
+        const previousDamage = activeShotDamage;
+
+        activeAttacker = fighter;
+        activeShotDamage = 0;
+
+        let result;
+
+        try {
+            result = previousFireWeapon.apply(this, arguments);
+        } finally {
+            activeAttacker = previousAttacker;
+        }
+
+        const ammoAfter = Number(fighter.ammo);
+        const damageThisShot = activeShotDamage;
+
+        activeShotDamage = previousDamage;
+
+        if (!eligible) return result;
+
+        if (
+            !Number.isFinite(ammoBefore) ||
+            !Number.isFinite(ammoAfter) ||
+            ammoAfter !== ammoBefore - 1
+        ) {
+            report(
+                "ammo-consumption",
+                "A valid firing attempt did not consume exactly one round.",
+                "high",
+                fighter
+            );
+
+            return result;
+        }
+
+        if (ammoAfter < 0) {
+            report(
+                "negative-ammo",
+                "A fighter fired with negative ammunition.",
+                "critical",
+                fighter
+            );
+        }
+
+        const weapon = getWeapon(fighter.weaponName);
+
+        if (!weapon) {
+            report(
+                "invalid-weapon",
+                "Unknown weapon used during firing.",
+                "high",
+                fighter
+            );
+
+            return result;
+        }
+
+        const now = performance.now();
+        const state = fighterStates.get(fighter);
+
+        const minimumRate = Number(weapon.rate) / 1000;
+
+        if (
+            state.lastShotAt > 0 &&
+            minimumRate > 0 &&
+            now - state.lastShotAt < minimumRate * 0.65
+        ) {
+            report(
+                "fire-rate",
+                "Weapon fired faster than its configured fire rate.",
+                "high",
+                fighter
+            );
+        }
+
+        state.lastShotAt = now;
+
+        const maximumDamage =
+            Number(weapon.damage) *
+            Math.max(1, Number(weapon.pellets) || 1) *
+            1.85;
+
+        if (
+            damageThisShot >
+            maximumDamage + 2
+        ) {
+            report(
+                "excessive-damage",
+                "Damage exceeded the weapon's configured maximum.",
+                "critical",
+                fighter
+            );
+        }
+
+        return result;
+    };
+
+    // ---------------------------------------------------------
+    // KILL VALIDATION
+    // ---------------------------------------------------------
+
+    const previousKillFighter = killFighter;
+
+    killFighter = function(victim, killer, headshot = false) {
+        if (!victim || !killer) {
+            report(
+                "invalid-kill-arguments",
+                "Kill event had a missing attacker or victim.",
+                "critical"
+            );
+
+            return;
+        }
+
+        instrumentFighter(victim);
+        instrumentFighter(killer);
+
+        if (!victim.alive) {
+            return previousKillFighter.apply(this, arguments);
+        }
+
+        if (victim === killer) {
+            report(
+                "self-kill",
+                "A fighter attempted to award themselves a kill.",
+                "high",
+                killer
+            );
+
+            return;
+        }
+
+        if (Number(victim.health) > 0.001) {
+            report(
+                "nonlethal-kill",
+                "Kill event occurred while the victim still had health.",
+                "critical",
+                killer
+            );
+
+            return;
+        }
+
+        const attackers = damageLedger.get(victim);
+        const damage = attackers?.get(killer);
+
+        if (
+            !damage ||
+            Date.now() - damage.lastAt > DAMAGE_MEMORY_MS
+        ) {
+            report(
+                "unverified-kill",
+                "No recent recorded damage from the claimed killer.",
+                "critical",
+                killer
+            );
+
+            return;
+        }
+
+        const previousKills = Number(killer.kills) || 0;
+        const previousDeaths = Number(victim.deaths) || 0;
+
+        const result = previousKillFighter.apply(
+            this,
+            arguments
+        );
+
+        const newKills = Number(killer.kills) || 0;
+        const newDeaths = Number(victim.deaths) || 0;
+
+        if (
+            newKills !== previousKills + 1 ||
+            newDeaths !== previousDeaths + 1
+        ) {
+            report(
+                "kill-counter-integrity",
+                "Kill/death counters changed unexpectedly.",
+                "critical",
+                killer
+            );
+        }
+
+        const state = fighterStates.get(killer);
+
+        if (state) {
+            state.kills++;
+
+            if (headshot) {
+                state.headshots++;
+            }
+
+            if (
+                state.kills >= 20 &&
+                state.headshots / state.kills > 0.80
+            ) {
+                report(
+                    "headshot-anomaly",
+                    "Extremely unusual headshot frequency.",
+                    "high",
+                    killer
+                );
+            }
+        }
+
+        recordPlayerKill(killer, victim);
+
+        attackers.delete(killer);
+
+        return result;
+    };
+
+    // ---------------------------------------------------------
+    // MOVEMENT VALIDATION
+    // ---------------------------------------------------------
+
+    function inspectMovement(dt) {
+        if (!Number.isFinite(dt) || dt <= 0 || dt > 0.15) {
+            return;
+        }
+
+        for (const fighter of allFighters()) {
+            instrumentFighter(fighter);
+
+            const state = fighterStates.get(fighter);
+
+            if (!state) continue;
+
+            const x = Number(fighter.x);
+            const y = Number(fighter.y);
+
+            if (!Number.isFinite(x) || !Number.isFinite(y)) {
+                report(
+                    "invalid-position",
+                    "Fighter position is not finite.",
+                    "critical",
+                    fighter
+                );
+
+                continue;
+            }
+
+            if (
+                fighter.alive &&
+                state.wasAlive &&
+                fighter.spawnShield <= 0 &&
+                state.previousSpawnShield <= 0
+            ) {
+                const distance = Math.hypot(
+                    x - state.lastX,
+                    y - state.lastY
+                );
+
+                const speed = distance / dt;
+
+                if (speed > 650) {
+                    report(
+                        "impossible-movement",
+                        "Movement exceeded 650 world units per second.",
+                        "high",
+                        fighter
+                    );
+                }
+
+                const velocity = Math.hypot(
+                    Number(fighter.vx) || 0,
+                    Number(fighter.vy) || 0
+                );
+
+                if (velocity > 700) {
+                    report(
+                        "impossible-velocity",
+                        "Reported velocity exceeded the allowed limit.",
+                        "high",
+                        fighter
+                    );
+                }
+            }
+
+            state.lastX = x;
+            state.lastY = y;
+            state.wasAlive = !!fighter.alive;
+            state.previousSpawnShield =
+                Number(fighter.spawnShield) || 0;
+        }
+    }
+
+    // ---------------------------------------------------------
+    // RELOAD VALIDATION
+    // ---------------------------------------------------------
+
+    const previousCompleteReload = completeReload;
+
+    completeReload = function(fighter) {
+        if (!fighter) {
+            return previousCompleteReload.apply(this, arguments);
+        }
+
+        const beforeAmmo = Number(fighter.ammo);
+        const beforeReserve = Number(fighter.reserve);
+
+        const result = previousCompleteReload.apply(
+            this,
+            arguments
+        );
+
+        const weapon = getWeapon(fighter.weaponName);
+
+        if (!weapon) return result;
+
+        const afterAmmo = Number(fighter.ammo);
+        const afterReserve = Number(fighter.reserve);
+
+        if (
+            !Number.isFinite(afterAmmo) ||
+            !Number.isFinite(afterReserve) ||
+            afterAmmo < 0 ||
+            afterReserve < 0 ||
+            afterAmmo > weapon.mag ||
+            afterReserve > weapon.reserve ||
+            afterAmmo + afterReserve >
+                beforeAmmo + beforeReserve + 0.001
+        ) {
+            report(
+                "reload-integrity",
+                "Reload produced an impossible ammunition state.",
+                "critical",
+                fighter
+            );
+        }
+
+        return result;
+    };
+
+    // ---------------------------------------------------------
+    // MATCH VALIDATION
+    // ---------------------------------------------------------
+
+    function inspectMatch(ranked = false) {
+        const errors = [];
+
+        if (!match) {
+            errors.push("missing-match");
+        }
+
+        if (!player) {
+            errors.push("missing-player");
+        }
+
+        if (!match || !player) {
+            return { ok: false, errors };
+        }
+
+        const elapsed = Number(match.elapsed);
+        const kills = Number(player.kills);
+        const deaths = Number(player.deaths);
+
+        const board = [
+            player,
+            ...(Array.isArray(bots) ? bots : [])
+        ].filter(Boolean);
+
+        if (!Number.isFinite(elapsed)) {
+            errors.push("invalid-duration");
+        } else if (
+            ranked &&
+            (elapsed < 30 || elapsed > 3600)
+        ) {
+            errors.push("ranked-duration");
+        } else if (
+            !ranked &&
+            elapsed < 10
+        ) {
+            errors.push("casual-duration");
+        }
+
+        if (
+            !Number.isFinite(kills) ||
+            !Number.isInteger(kills) ||
+            kills < 0
+        ) {
+            errors.push("invalid-kills");
+        }
+
+        if (
+            !Number.isFinite(deaths) ||
+            !Number.isInteger(deaths) ||
+            deaths < 0
+        ) {
+            errors.push("invalid-deaths");
+        }
+
+        if (
+            Number.isFinite(elapsed) &&
+            elapsed > 0 &&
+            (
+                kills > elapsed * 1.5 + 8 ||
+                deaths > elapsed * 2 + 10
+            )
+        ) {
+            errors.push("impossible-statistics");
+        }
+
+        if (board.length < 2) {
+            errors.push("insufficient-players");
+        }
+
+        if (ranked) {
+            if (!window.XR47Online?.connected) {
+                errors.push("ranked-offline");
+            }
+
+            if (
+                Number(window.XR47Online?.playerCount || 0) < 2
+            ) {
+                errors.push("ranked-player-count");
+            }
+        }
+
+        if (match.killLimit > 0) {
+            const highestKills = Math.max(
+                ...board.map(f => Number(f.kills) || 0)
+            );
+
+            if (highestKills > match.killLimit + 1) {
+                errors.push("kill-limit-exceeded");
+            }
+        }
+
+        for (const flag of matchFlags) {
+            errors.push("suspicious-" + flag);
+        }
+
+        return {
+            ok: errors.length === 0,
+            errors
+        };
+    }
+
+    // ---------------------------------------------------------
+    // RANKED AND CASUAL COMPLETION GATES
+    // ---------------------------------------------------------
+
+    function validateRankedResult() {
+        if (
+            !pendingCompletion ||
+            !pendingCompletion.ranked ||
+            !pendingCompletion.valid
+        ) {
+            report(
+                "ranked-result-rejected",
+                "Ranked result did not pass match validation.",
+                "high"
+            );
+
+            return false;
+        }
+
+        const result = inspectMatch(true);
+
+        if (!result.ok) {
+            report(
+                "ranked-result-invalid",
+                result.errors.join(", "),
+                "high"
+            );
+
+            return false;
+        }
+
+        return true;
+    }
+
+    function allowCasualCompletion(options = {}) {
+        if (
+            !pendingCompletion ||
+            pendingCompletion.ranked ||
+            !pendingCompletion.valid ||
+            Boolean(options.won) !== pendingCompletion.won
+        ) {
+            report(
+                "casual-completion-rejected",
+                "Casual completion did not pass validation.",
+                "high"
+            );
+
+            return false;
+        }
+
+        return true;
+    }
+
+    const previousFinishMatch = finishMatch;
+
+    finishMatch = function(...args) {
+        syncMatch();
+
+        const isNewCompletion =
+            !!match &&
+            !match.ended;
+
+        if (!isNewCompletion) {
+            return previousFinishMatch.apply(this, args);
+        }
+
+        const ranked = !!window.XR47RankedActive;
+
+        const board = [
+            player,
+            ...(Array.isArray(bots) ? bots : [])
+        ]
+            .filter(Boolean)
+            .sort(
+                (a, b) =>
+                    (Number(b.kills) || 0) -
+                    (Number(a.kills) || 0)
+            );
+
+        const won = board[0] === player;
+
+        const validation = inspectMatch(ranked);
+
+        pendingCompletion = {
+            ranked,
+            won,
+            valid: validation.ok,
+            errors: validation.errors
+        };
+
+        const oldUnlock = { ...expectedUnlock };
+
+        if (!ranked && validation.ok) {
+            expectedUnlock = {
+                matches: oldUnlock.matches + 1,
+                wins: oldUnlock.wins + (won ? 1 : 0)
+            };
+
+            permitUnlockWrite = true;
+        }
+
+        try {
+            return previousFinishMatch.apply(this, args);
+        } catch (error) {
+            expectedUnlock = oldUnlock;
+            throw error;
+        } finally {
+            permitUnlockWrite = false;
+            pendingCompletion = null;
+        }
+    };
+
+    // ---------------------------------------------------------
+    // REMOTE INPUT VALIDATION
+    // ---------------------------------------------------------
+
+    function validateRemoteInput(id, input) {
+        if (
+            !input ||
+            typeof input !== "object"
+        ) {
+            report(
+                "invalid-network-input",
+                "Remote input was not an object."
+            );
+
+            return false;
+        }
+
+        const booleanFields = [
+            "up",
+            "down",
+            "left",
+            "right",
+            "shift",
+            "shooting"
+        ];
+
+        for (const field of booleanFields) {
+            if (typeof input[field] !== "boolean") {
+                report(
+                    "invalid-network-input",
+                    "Invalid input field: " + field
+                );
+
+                return false;
+            }
+        }
+
+        const angle = Number(input.angle);
+
+        if (
+            !Number.isFinite(angle) ||
+            Math.abs(angle) > Math.PI * 4
+        ) {
+            report(
+                "invalid-network-angle",
+                "Remote player supplied an invalid aim angle.",
+                "high"
+            );
+
+            return false;
+        }
+
+        const now = Date.now();
+        const previous = inputTimes.get(id) || 0;
+
+        if (now - previous < 5) {
+            report(
+                "input-flood",
+                "Remote input messages arrived too frequently.",
+                "medium"
+            );
+
+            return false;
+        }
+
+        inputTimes.set(id, now);
+
+        return true;
+    }
+
+    // ---------------------------------------------------------
+    // SNAPSHOT VALIDATION
+    // ---------------------------------------------------------
+
+    function validateSnapshot(state) {
+        if (
+            !state ||
+            typeof state !== "object" ||
+            !Array.isArray(state.players) ||
+            state.players.length < 1 ||
+            state.players.length > 8
+        ) {
+            report(
+                "invalid-snapshot",
+                "Snapshot has an invalid player list.",
+                "high"
+            );
+
+            return false;
+        }
+		
+		        if (
+            Array.isArray(state.antiCheat?.matchFlags) &&
+            state.antiCheat.matchFlags.length
+        ) {
+            for (const flag of state.antiCheat.matchFlags) {
+                matchFlags.add("host-reported-" + String(flag));
+            }
+        }
+
+        if (
+            Number.isInteger(state.mapIndex) &&
+            state.mapIndex >= 0 &&
+            state.mapIndex >= MAPS.length
+        ) {
+            report(
+                "invalid-snapshot-map",
+                "Snapshot references a nonexistent map.",
+                "high"
+            );
+
+            return false;
+        }
+
+        if (state.match) {
+            const elapsed = Number(state.match.elapsed);
+
+            if (
+                !Number.isFinite(elapsed) ||
+                elapsed < 0 ||
+                elapsed > 7200
+            ) {
+                report(
+                    "invalid-snapshot-match",
+                    "Snapshot contains an impossible match duration.",
+                    "high"
+                );
+
+                return false;
+            }
+        }
+
+        const seen = new Set();
+
+        for (const f of state.players) {
+            if (!f || f.id === undefined || f.id === null) {
+                report(
+                    "invalid-snapshot-player",
+                    "Snapshot contained a player without an ID.",
+                    "high"
+                );
+
+                return false;
+            }
+
+            const id = String(f.id);
+
+            if (seen.has(id)) {
+                report(
+                    "duplicate-snapshot-player",
+                    "Snapshot contained duplicate player IDs.",
+                    "high"
+                );
+
+                return false;
+            }
+
+            seen.add(id);
+
+            const x = Number(f.x);
+            const y = Number(f.y);
+            const health = Number(f.health);
+            const maxHealth = Number(f.maxHealth);
+            const vx = Number(f.vx);
+            const vy = Number(f.vy);
+            const angle = Number(f.angle);
+            const kills = Number(f.kills);
+            const deaths = Number(f.deaths);
+            const ammo = Number(f.ammo);
+            const reserve = Number(f.reserve);
+
+            if (
+                !Number.isFinite(x) ||
+                !Number.isFinite(y) ||
+                Math.abs(x) > 100000 ||
+                Math.abs(y) > 100000 ||
+                !Number.isFinite(health) ||
+                !Number.isFinite(maxHealth) ||
+                health < 0 ||
+                maxHealth <= 0 ||
+                health > maxHealth + 1 ||
+                !Number.isFinite(vx) ||
+                !Number.isFinite(vy) ||
+                Math.hypot(vx, vy) > 1000 ||
+                !Number.isFinite(angle) ||
+                Math.abs(angle) > Math.PI * 4 ||
+                !Number.isInteger(kills) ||
+                !Number.isInteger(deaths) ||
+                kills < 0 ||
+                deaths < 0 ||
+                !Number.isFinite(ammo) ||
+                !Number.isFinite(reserve) ||
+                ammo < 0 ||
+                reserve < 0
+            ) {
+                report(
+                    "invalid-snapshot-statistics",
+                    "Snapshot contained impossible fighter statistics.",
+                    "high"
+                );
+
+                return false;
+            }
+
+            const previous = snapshotStats.get(id);
+
+            if (previous) {
+                if (
+                    kills < previous.kills ||
+                    deaths < previous.deaths ||
+                    kills - previous.kills > 5 ||
+                    deaths - previous.deaths > 5
+                ) {
+                    report(
+                        "snapshot-stat-manipulation",
+                        "Snapshot contained an impossible kill/death change.",
+                        "high"
+                    );
+
+                    return false;
+                }
+            }
+
+            snapshotStats.set(id, {
+                kills,
+                deaths
+            });
+        }
+
+        return true;
+    }
+
+    // ---------------------------------------------------------
+    // STORAGE INTEGRITY
+    // ---------------------------------------------------------
+
+    const nativeSetItem = Storage.prototype.setItem;
+    const nativeRemoveItem = Storage.prototype.removeItem;
+    const nativeClear = Storage.prototype.clear;
+
+    Storage.prototype.setItem = function(key, value) {
+        if (
+            this === localStorage &&
+            key === UNLOCK_KEY
+        ) {
+            let candidate;
+
+            try {
+                const parsed = JSON.parse(value);
+
+                candidate = {
+                    matches: Math.max(
+                        0,
+                        Math.floor(Number(parsed.matches) || 0)
+                    ),
+                    wins: Math.max(
+                        0,
+                        Math.floor(Number(parsed.wins) || 0)
+                    )
+                };
+            } catch {
+                report(
+                    "invalid-unlock-storage",
+                    "Invalid unlock progress write was rejected.",
+                    "high"
+                );
+
+                return;
+            }
+
+            if (
+                !permitUnlockWrite ||
+                !sameProgress(candidate, expectedUnlock)
+            ) {
+                report(
+                    "unlock-storage-tampering",
+                    "Unauthorized Ranked unlock progress modification.",
+                    "high"
+                );
+
+                return;
+            }
+        }
+
+        return nativeSetItem.call(this, key, value);
+    };
+
+    Storage.prototype.removeItem = function(key) {
+        if (
+            this === localStorage &&
+            key === UNLOCK_KEY
+        ) {
+            report(
+                "unlock-storage-deletion",
+                "Attempted deletion of Ranked unlock progress.",
+                "high"
+            );
+
+            return;
+        }
+
+        return nativeRemoveItem.call(this, key);
+    };
+
+    Storage.prototype.clear = function() {
+        if (
+            this === localStorage &&
+            localStorage.getItem(UNLOCK_KEY) !== null
+        ) {
+            report(
+                "storage-clear-attempt",
+                "Attempted to clear local game storage.",
+                "high"
+            );
+
+            return;
+        }
+
+        return nativeClear.call(this);
+    };
+
+    function verifyUnlockStorage() {
+        try {
+            const stored = readUnlockProgress();
+
+            if (!sameProgress(stored, expectedUnlock)) {
+                report(
+                    "unlock-storage-changed",
+                    "Stored Ranked progress changed outside the validated game flow.",
+                    "high"
+                );
+
+                // Restore the last accepted value.
+                nativeSetItem.call(
+                    localStorage,
+                    UNLOCK_KEY,
+                    JSON.stringify(expectedUnlock)
+                );
+            }
+        } catch (error) {
+            report(
+                "storage-integrity-error",
+                error.message,
+                "medium"
+            );
+        }
+    }
+
+    window.addEventListener("storage", event => {
+        if (
+            event.key === UNLOCK_KEY &&
+            event.newValue !== JSON.stringify(expectedUnlock)
+        ) {
+            report(
+                "external-storage-change",
+                "Ranked progress changed from another tab.",
+                "high"
+            );
+
+            try {
+                nativeSetItem.call(
+                    localStorage,
+                    UNLOCK_KEY,
+                    JSON.stringify(expectedUnlock)
+                );
+            } catch {}
+        }
+    });
+
+    // ---------------------------------------------------------
+    // UPDATE LOOP INTEGRATION
+    // ---------------------------------------------------------
+
+    const previousUpdate = update;
+
+    update = function(dt) {
+        const result = previousUpdate.apply(this, arguments);
+
+        syncMatch();
+        instrumentAll();
+        inspectMovement(dt);
+        verifyUnlockStorage();
+
+        return result;
+    };
+
+    // ---------------------------------------------------------
+    // PUBLIC API
+    // ---------------------------------------------------------
+
+    const api = {
+        version: VERSION,
+
+        get enabled() {
+            return enabled;
+        },
+
+        getStatus() {
+            return {
+                version: VERSION,
+                enabled,
+                matchFlags: [...matchFlags],
+                violationCount: violations.length,
+                suspiciousPlayers: suspiciousPlayers.size,
+                unlockBaseline: { ...expectedUnlock }
+            };
+        },
+
+        getViolations() {
+            return violations.map(v => ({ ...v }));
+        },
+
+        isPlayerSuspicious(id) {
+            return suspiciousPlayers.has(String(id));
+        },
+
+        inspectMatch,
+
+        validateRankedResult,
+        allowCasualCompletion,
+
+        validateRemoteInput,
+        validateSnapshot,
+
+        getUnlockBaseline() {
+            return { ...expectedUnlock };
+        }
+    };
+
+    Object.freeze(api);
+
+    Object.defineProperty(window, "XR47AntiCheat", {
+        value: api,
+        writable: false,
+        configurable: false
+    });
+
+    // ---------------------------------------------------------
+    // INITIALIZATION
+    // ---------------------------------------------------------
+
+    instrumentAll();
+    syncMatch();
+
+    setInterval(() => {
+        instrumentAll();
+        verifyUnlockStorage();
+    }, 2000);
+
+    console.info(
+        "[XR-47 Anti-Cheat] v" + VERSION + " initialized.",
+        "Unlock baseline:",
+        expectedUnlock
+    );
 
 })();
 </script>
