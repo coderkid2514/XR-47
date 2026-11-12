@@ -6152,12 +6152,18 @@ peer.on("xr47:host-left", data => {
         });
 
         peer.on("xr47:end", () => {
-            if (id !== hostId) return;
+    if (id !== hostId) return;
 
-            endingFromNetwork = true;
-            finishMatch();
-            endingFromNetwork = false;
-        });
+    endingFromNetwork = true;
+
+    try {
+        // Run the complete finishMatch wrapper chain.
+        // This allows Ranked and Casual progress to be recorded.
+        finishMatch();
+    } finally {
+        endingFromNetwork = false;
+    }
+});
 
         peer.emit("xr47:hello", getLocalInfo());
     }
@@ -7201,19 +7207,64 @@ drawGame = function() {
 // EARNED RANKED ACCESS
 // ---------------------------------------------------------
 
-const RANKED_UNLOCK_KEY = "xr47-ranked-unlock-v1-" + profile.id;
+
+// ---------------------------------------------------------
+// EARNED RANKED ACCESS
+// ---------------------------------------------------------
+
+// Stable key: changing the player's profile ID won't erase progress.
+const RANKED_UNLOCK_KEY = "xr47-ranked-unlock-v1";
+const RANKED_UNLOCK_LEGACY_PREFIX = "xr47-ranked-unlock-v1-";
 
 function loadCasualProgress() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(RANKED_UNLOCK_KEY));
+    const prefix = "xr47-ranked-unlock-v1";
+    let best = { matches: 0, wins: 0 };
 
-        return {
-            matches: Math.max(0, Number(saved?.matches) || 0),
-            wins: Math.max(0, Number(saved?.wins) || 0)
-        };
-    } catch {
-        return { matches: 0, wins: 0 };
+    try {
+        // Check EVERY matching key, including the current key.
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+
+            if (!key || !key.startsWith(prefix)) continue;
+
+            try {
+                const saved = JSON.parse(localStorage.getItem(key));
+
+                if (!saved) continue;
+
+                const candidate = {
+                    matches: Math.max(0, Number(saved.matches) || 0),
+                    wins: Math.max(0, Number(saved.wins) || 0)
+                };
+
+                if (
+                    candidate.matches > best.matches ||
+                    (
+                        candidate.matches === best.matches &&
+                        candidate.wins > best.wins
+                    )
+                ) {
+                    best = candidate;
+                }
+            } catch (error) {
+                console.warn("[XR-47 Ranked] Invalid progress record:", key);
+            }
+        }
+
+        // Always synchronize the best recovered progress.
+        localStorage.setItem(
+            RANKED_UNLOCK_KEY,
+            JSON.stringify(best)
+        );
+
+    } catch (error) {
+        console.error("[XR-47 Ranked] Progress loading failed:", error);
     }
+
+    console.log("[XR-47 DEBUG] Loaded progress:", best);
+console.log("[XR-47 DEBUG] Stored progress:", localStorage.getItem(RANKED_UNLOCK_KEY));
+
+    return best;
 }
 
 let casualProgress = loadCasualProgress();
@@ -7230,7 +7281,7 @@ function saveCasualProgress() {
             JSON.stringify(casualProgress)
         );
     } catch (error) {
-        console.warn("[XR-47 Ranked] Could not save unlock progress:", error);
+        console.error("[XR-47 Ranked] Progress save failed:", error);
     }
 
     updateRankedButton();
@@ -7238,6 +7289,10 @@ function saveCasualProgress() {
 
 function updateRankedButton() {
     if (!rankedButton) return;
+	console.log("[XR-47 DEBUG] Button update:", {
+    progress: casualProgress,
+    unlocked: isRankedUnlocked()
+});
 
     if (isRankedUnlocked()) {
         rankedButton.textContent = "🏆  Ranked Match";
@@ -7249,6 +7304,7 @@ function updateRankedButton() {
         rankedButton.style.borderColor = "#71869b";
     }
 }
+
 
     const menuButtons = document.querySelector(".menu-buttons");
 
