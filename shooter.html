@@ -1,0 +1,7411 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XR-47 — Free For All</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+:root {
+    --bg: #101411;
+    --panel: rgba(17, 23, 19, .96);
+    --line: rgba(174, 194, 174, .16);
+    --muted: #87928a;
+    --green: #b6dc79;
+    --orange: #ffad52;
+    --red: #f16b62;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: var(--bg);
+    color: #edf1e9;
+    font-family: 'Rajdhani', sans-serif;
+    user-select: none;
+}
+
+button, select {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+#game {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: .12;
+    background-image: radial-gradient(#ffffff 0.55px, transparent .55px);
+    background-size: 5px 5px;
+    mix-blend-mode: overlay;
+}
+
+.screen {
+    position: fixed;
+    inset: 0;
+    display: none;
+    overflow-y: auto;
+}
+
+.screen.active {
+    display: flex;
+}
+
+#menu {
+    align-items: center;
+    justify-content: center;
+    background:
+        linear-gradient(90deg, rgba(8, 13, 10, .96) 0%, rgba(8, 13, 10, .76) 48%, rgba(8, 13, 10, .3) 100%),
+        linear-gradient(0deg, rgba(8, 13, 10, .85), transparent 65%);
+}
+
+.menu-content {
+    width: min(1100px, 92vw);
+    padding: 45px 0;
+}
+
+.eyebrow {
+    color: var(--green);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+}
+
+.logo {
+    margin: 5px 0 0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(76px, 12vw, 150px);
+    font-weight: 900;
+    line-height: .82;
+    letter-spacing: -4px;
+    text-transform: uppercase;
+    text-shadow: 0 8px 40px #000;
+}
+
+.logo span {
+    color: var(--green);
+}
+
+.subtitle {
+    margin: 22px 0 38px;
+    color: #aeb9ae;
+    font-size: 16px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+    width: 260px;
+}
+
+.menu-button {
+    position: relative;
+    width: 100%;
+    padding: 12px 18px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #dce4da;
+    text-align: left;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 23px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: .16s;
+}
+
+.menu-button::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: .16s;
+}
+
+.menu-button:hover {
+    padding-left: 27px;
+    color: var(--green);
+    background: rgba(182, 220, 121, .07);
+}
+
+.menu-button:hover::before {
+    background: var(--green);
+}
+
+.menu-button.primary {
+    background: var(--green);
+    color: #172015;
+    border-color: var(--green);
+    box-shadow: 0 8px 30px rgba(182, 220, 121, .12);
+}
+
+.menu-button.primary:hover {
+    padding-left: 27px;
+    background: #c9ed8c;
+    color: #10180f;
+}
+
+.menu-footer {
+    display: flex;
+    gap: 25px;
+    margin-top: 48px;
+    color: #778279;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.menu-footer strong {
+    color: #c4d2c2;
+}
+
+.panel-screen {
+    align-items: center;
+    justify-content: center;
+    padding: 25px;
+    background: rgba(6, 10, 8, .88);
+    backdrop-filter: blur(9px);
+}
+
+.panel {
+    width: min(850px, 96vw);
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 30px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    box-shadow: 0 25px 100px #0009;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+}
+
+.panel-title {
+    margin: 0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 43px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.close-button {
+    padding: 8px 13px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: #d8e1d7;
+    font-size: 13px;
+    letter-spacing: 2px;
+}
+
+.close-button:hover {
+    border-color: var(--green);
+    color: var(--green);
+}
+
+.section-label {
+    margin: 24px 0 12px;
+    color: var(--green);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.weapon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    gap: 9px;
+}
+
+.weapon-card {
+    min-height: 105px;
+    padding: 13px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.025);
+    text-align: left;
+    color: #e8eee5;
+    transition: .15s;
+}
+
+.weapon-card:hover {
+    border-color: #81966b;
+    background: rgba(182,220,121,.07);
+}
+
+.weapon-card.selected {
+    border-color: var(--green);
+    background: rgba(182,220,121,.12);
+    box-shadow: inset 0 0 0 1px rgba(182,220,121,.15);
+}
+
+.weapon-name {
+    display: block;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.weapon-type {
+    display: block;
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.weapon-stats {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    color: #bdc9b9;
+    font-size: 11px;
+}
+
+.action-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+.action-button {
+    padding: 11px 22px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: #e9efe6;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.action-button:hover {
+    border-color: var(--green);
+}
+
+.action-button.primary {
+    border-color: var(--green);
+    background: var(--green);
+    color: #172015;
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.setting-row label {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.setting-row small {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.setting-row input,
+.setting-row select {
+    accent-color: var(--green);
+}
+
+.setting-row select {
+    min-width: 130px;
+    padding: 8px;
+    border: 1px solid var(--line);
+    background: #1b241d;
+    color: white;
+}
+
+.setting-row input[type="range"] {
+    width: 150px;
+}
+
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 22px;
+}
+
+.stat-card {
+    padding: 20px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.025);
+}
+
+.stat-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--green);
+}
+
+.stat-label {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+#hud {
+    position: fixed;
+    inset: 0;
+    display: none;
+    pointer-events: none;
+}
+
+#hud.active {
+    display: block;
+}
+
+.hud-top {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    padding: 10px 20px;
+    border: 1px solid #ffffff1c;
+    background: #0c120ec9;
+    backdrop-filter: blur(8px);
+}
+
+.hud-stat {
+    text-align: center;
+}
+
+.hud-stat strong {
+    display: block;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 26px;
+    line-height: 1;
+}
+
+.hud-stat span {
+    color: #87948a;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+#killfeed {
+    position: absolute;
+    top: 90px;
+    right: 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.feed-item {
+    padding: 7px 11px;
+    background: #101811c9;
+    border-right: 2px solid var(--orange);
+    color: #dce6d9;
+    font-size: 13px;
+    animation: feedIn .2s ease-out;
+}
+
+@keyframes feedIn {
+    from { opacity: 0; transform: translateX(15px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.hud-bottom {
+    position: absolute;
+    left: 25px;
+    bottom: 22px;
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+}
+
+.health-box, .weapon-box {
+    padding: 12px 16px;
+    border: 1px solid #ffffff22;
+    background: #0c120edb;
+    backdrop-filter: blur(8px);
+}
+
+.health-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 34px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.health-label, .ammo-label {
+    color: #829086;
+    font-size: 10px;
+    letter-spacing: 2px;
+}
+
+.health-bar {
+    width: 150px;
+    height: 5px;
+    margin-top: 9px;
+    background: #354139;
+}
+
+.health-fill {
+    width: 100%;
+    height: 100%;
+    background: var(--green);
+    transition: width .15s;
+}
+
+.weapon-name-hud {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 23px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.ammo-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 35px;
+    font-weight: 800;
+}
+
+.ammo-number span {
+    color: #829086;
+    font-size: 21px;
+}
+
+#crosshair {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    width: 20px;
+    height: 20px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.cross-line {
+    position: absolute;
+    background: #e9f1df;
+    box-shadow: 0 1px 3px #000;
+}
+
+.cross-line.top {
+    left: 9px;
+    top: 0;
+    width: 2px;
+    height: 6px;
+}
+
+.cross-line.bottom {
+    left: 9px;
+    bottom: 0;
+    width: 2px;
+    height: 6px;
+}
+
+.cross-line.left {
+    left: 0;
+    top: 9px;
+    width: 6px;
+    height: 2px;
+}
+
+.cross-line.right {
+    right: 0;
+    top: 9px;
+    width: 6px;
+    height: 2px;
+}
+
+#hitmarker {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    color: white;
+    font-size: 28px;
+    font-weight: 700;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    text-shadow: 0 2px 5px #000;
+}
+
+#hitmarker.show {
+    animation: hit .18s ease-out;
+}
+
+@keyframes hit {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(.7); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.25); }
+}
+
+#notice {
+    position: fixed;
+    top: 23%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 18px;
+    background: #111a13dd;
+    border: 1px solid #ffffff22;
+    color: #f1f5ec;
+    font-size: 14px;
+    letter-spacing: 2px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+}
+
+#notice.show {
+    opacity: 1;
+}
+
+#pauseScreen, #endScreen {
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 9, 7, .82);
+    backdrop-filter: blur(8px);
+}
+
+.center-panel {
+    width: min(440px, 92vw);
+    padding: 35px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    text-align: center;
+}
+
+.center-panel h2 {
+    margin: 0 0 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 55px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.center-panel p {
+    color: var(--muted);
+}
+
+.center-panel .menu-buttons {
+    width: 100%;
+    margin-top: 25px;
+}
+
+.scoreboard {
+    width: min(600px, 92vw);
+    margin: 20px auto 0;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.scoreboard th, .scoreboard td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--line);
+}
+
+.scoreboard th {
+    color: var(--green);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.scoreboard td {
+    font-size: 15px;
+}
+
+.scoreboard tr.me td {
+    color: var(--green);
+}
+
+#toast {
+    position: fixed;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 9px 15px;
+    background: #121a14;
+    border: 1px solid var(--line);
+    color: #dbe5d8;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+}
+
+#toast.show {
+    opacity: 1;
+}
+
+@media (max-width: 650px) {
+    .menu-content {
+        padding: 25px;
+    }
+
+    .menu-footer {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .panel {
+        padding: 19px;
+    }
+
+    .stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .hud-top {
+        gap: 12px;
+        padding: 8px 12px;
+    }
+
+    .hud-bottom {
+        left: 10px;
+        bottom: 10px;
+        gap: 7px;
+    }
+
+    .health-box, .weapon-box {
+        padding: 8px 10px;
+    }
+
+    .health-bar {
+        width: 90px;
+    }
+
+    #killfeed {
+        top: 80px;
+        right: 8px;
+    }
+}
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+<div id="grain"></div>
+
+<section id="menu" class="screen active">
+    <div class="menu-content">
+        <div class="eyebrow">Independent combat division · 2026</div>
+        <h1 class="logo">XR<span>-47</span></h1>
+        <div class="subtitle">No teams. No mercy. No waiting.</div>
+
+        <div class="menu-buttons">
+            <button class="menu-button primary" onclick="startMatch()">▶ &nbsp; Play now</button>
+            <button class="menu-button" onclick="openPanel('loadout')">▤ &nbsp; Loadout</button>
+            <button class="menu-button" onclick="openPanel('settings')">⚙ &nbsp; Settings</button>
+            <button class="menu-button" onclick="openPanel('statistics')">▥ &nbsp; Statistics</button>
+        </div>
+
+        <div class="menu-footer">
+            <span><strong>MODE</strong> FREE FOR ALL</span>
+            <span><strong>PLAYERS</strong> 8 PER MATCH</span>
+            <span><strong>QUEUE</strong> INSTANT</span>
+            <span>BUILD 0.1.0</span>
+        </div>
+    </div>
+</section>
+
+<section id="loadout" class="screen panel-screen">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Loadout</h2>
+            <button class="close-button" onclick="closePanel()">CLOSE ✕</button>
+        </div>
+
+        <div class="section-label">Primary weapon</div>
+        <div id="primaryGrid" class="weapon-grid"></div>
+
+        <div class="section-label">Secondary weapon</div>
+        <div id="secondaryGrid" class="weapon-grid"></div>
+
+        <div class="action-row">
+            <button class="action-button" onclick="resetLoadout()">DEFAULT</button>
+            <button class="action-button primary" onclick="closePanel()">CONFIRM LOADOUT</button>
+        </div>
+    </div>
+</section>
+
+<section id="settings" class="screen panel-screen">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Settings</h2>
+            <button class="close-button" onclick="closePanel()">CLOSE ✕</button>
+        </div>
+
+        <div class="setting-row">
+            <label>Master volume<small>All game audio</small></label>
+            <input id="volumeSetting" type="range" min="0" max="100" value="65">
+        </div>
+
+        <div class="setting-row">
+            <label>Mouse sensitivity<small>Aim movement sensitivity</small></label>
+            <input id="sensitivitySetting" type="range" min="50" max="200" value="100">
+        </div>
+
+        <div class="setting-row">
+            <label>Screen shake<small>Weapon and impact feedback</small></label>
+            <select id="shakeSetting">
+                <option value="on">Enabled</option>
+                <option value="off">Disabled</option>
+            </select>
+        </div>
+
+        <div class="setting-row">
+            <label>Show FPS<small>Performance counter</small></label>
+            <select id="fpsSetting">
+                <option value="off">Disabled</option>
+                <option value="on">Enabled</option>
+            </select>
+        </div>
+
+        <div class="setting-row">
+            <label>Match duration<small>Time limit per match</small></label>
+            <select id="durationSetting">
+                <option value="180">3 minutes</option>
+                <option value="300" selected>5 minutes</option>
+                <option value="600">10 minutes</option>
+                <option value="0">Unlimited</option>
+            </select>
+        </div>
+
+        <div class="setting-row">
+            <label>Kill limit<small>First player to reach this score wins</small></label>
+            <select id="killSetting">
+                <option value="10">10 kills</option>
+                <option value="20" selected>20 kills</option>
+                <option value="30">30 kills</option>
+                <option value="50">50 kills</option>
+                <option value="0">Unlimited</option>
+            </select>
+        </div>
+
+        <div class="action-row">
+            <button class="action-button primary" onclick="saveSettings()">SAVE SETTINGS</button>
+        </div>
+    </div>
+</section>
+
+<section id="statistics" class="screen panel-screen">
+    <div class="panel">
+        <div class="panel-header">
+            <h2 class="panel-title">Statistics</h2>
+            <button class="close-button" onclick="closePanel()">CLOSE ✕</button>
+        </div>
+
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="statKills">0</div>
+                <div class="stat-label">Total kills</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statDeaths">0</div>
+                <div class="stat-label">Total deaths</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statMatches">0</div>
+                <div class="stat-label">Matches played</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statWins">0</div>
+                <div class="stat-label">Wins</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statKD">0.00</div>
+                <div class="stat-label">Kill / death ratio</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statBest">0</div>
+                <div class="stat-label">Best match kills</div>
+            </div>
+        </div>
+
+        <div class="action-row">
+            <button class="action-button" onclick="resetStatistics()">RESET STATS</button>
+        </div>
+    </div>
+</section>
+
+
+<section id="pauseScreen" class="screen">
+    <div class="center-panel">
+        <div class="eyebrow">Combat suspended</div>
+        <h2>Paused</h2>
+        <p>The battlefield is waiting.</p>
+        <div class="menu-buttons">
+            <button class="menu-button primary" onclick="resumeGame()">RESUME</button>
+            <button class="menu-button" onclick="XR47Online?.leave() || endToMenu()">LEAVE MATCH</button>
+        </div>
+    </div>
+</section>
+
+<section id="endScreen" class="screen">
+    <div class="center-panel">
+        <div class="eyebrow">Match concluded</div>
+        <h2 id="endTitle">Victory</h2>
+        <p id="endSummary">Match results</p>
+        <div id="finalBoard"></div>
+        <div class="menu-buttons">
+            <button class="menu-button primary" onclick="startMatch()">PLAY AGAIN</button>
+            <button class="menu-button" onclick="XR47Online?.leave() || endToMenu()">MAIN MENU</button>
+        </div>
+    </div>
+</section>
+
+
+<div id="hud">
+    <div class="hud-top">
+        <div class="hud-stat">
+            <strong id="hudKills">0</strong>
+            <span>Kills</span>
+        </div>
+        <div class="hud-stat">
+            <strong id="hudTime">05:00</strong>
+            <span>Time</span>
+        </div>
+        <div class="hud-stat">
+            <strong id="hudAlive">8</strong>
+            <span>Combatants</span>
+        </div>
+        <div class="hud-stat">
+            <strong id="hudLimit">20</strong>
+            <span>Kill limit</span>
+        </div>
+    </div>
+
+    <div id="killfeed"></div>
+
+    <div class="hud-bottom">
+        <div class="health-box">
+            <div class="health-number" id="healthNumber">100</div>
+            <div class="health-label">HEALTH</div>
+            <div class="health-bar"><div class="health-fill" id="healthFill"></div></div>
+        </div>
+        <div class="weapon-box">
+            <div class="weapon-name-hud" id="weaponHud">M4A1</div>
+            <div class="ammo-number" id="ammoHud">30 <span>/ 90</span></div>
+            <div class="ammo-label" id="ammoLabel">ASSAULT RIFLE</div>
+        </div>
+    </div>
+</div>
+
+<div id="crosshair">
+    <div class="cross-line top"></div>
+    <div class="cross-line bottom"></div>
+    <div class="cross-line left"></div>
+    <div class="cross-line right"></div>
+</div>
+<div id="hitmarker">×</div>
+<div id="notice"></div>
+<div id="toast"></div>
+
+
+<script>
+"use strict";
+
+/* =========================================================
+   XR-47 — CORE
+========================================================= */
+
+const canvas = document.getElementById("game");
+
+if (!canvas) {
+    throw new Error("XR-47: The #game canvas element was not found.");
+}
+
+const ctx = canvas.getContext("2d", {
+    alpha: false,
+    desynchronized: true
+});
+
+let W = innerWidth;
+let H = innerHeight;
+let dpr = 1;
+
+const STORAGE = {
+    settings: "xr47_settings",
+    loadout: "xr47_loadout",
+    stats: "xr47_stats"
+};
+
+const DEFAULT_SETTINGS = {
+    volume: 0.65,
+    sensitivity: 1,
+    shake: true,
+    fps: true,
+    duration: 300,
+    killLimit: 20,
+    renderScale: 0.85
+};
+
+function clamp(v, a, b) {
+    return Math.max(a, Math.min(b, v));
+}
+
+function rand(a, b) {
+    return a + Math.random() * (b - a);
+}
+
+function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function angleTo(a, b) {
+    return Math.atan2(b.y - a.y, b.x - a.x);
+}
+
+function loadSettings() {
+    try {
+        const saved = JSON.parse(
+            localStorage.getItem(STORAGE.settings) || "{}"
+        );
+
+        return {
+            volume: clamp(
+                Number(saved.volume ?? DEFAULT_SETTINGS.volume),
+                0,
+                1
+            ),
+
+            sensitivity: clamp(
+                Number(saved.sensitivity ?? DEFAULT_SETTINGS.sensitivity),
+                0.5,
+                2
+            ),
+
+            shake: saved.shake !== false,
+            fps: saved.fps !== false,
+
+            duration: [0, 180, 300, 600].includes(
+                Number(saved.duration)
+            )
+                ? Number(saved.duration)
+                : DEFAULT_SETTINGS.duration,
+
+            killLimit: [0, 10, 20, 30, 50].includes(
+                Number(saved.killLimit)
+            )
+                ? Number(saved.killLimit)
+                : DEFAULT_SETTINGS.killLimit,
+
+            renderScale: [0.7, 0.85, 1].includes(
+                Number(saved.renderScale)
+            )
+                ? Number(saved.renderScale)
+                : DEFAULT_SETTINGS.renderScale
+        };
+    } catch {
+        return { ...DEFAULT_SETTINGS };
+    }
+}
+
+const settings = loadSettings();
+
+function saveSettingsToStorage() {
+    try {
+        localStorage.setItem(
+            STORAGE.settings,
+            JSON.stringify(settings)
+        );
+    } catch {
+        showToast("COULD NOT SAVE SETTINGS");
+    }
+}
+
+function resize() {
+    W = innerWidth;
+    H = innerHeight;
+
+    const deviceScale = Math.min(
+        window.devicePixelRatio || 1,
+        2
+    );
+
+    dpr = deviceScale * settings.renderScale;
+
+    canvas.width = Math.max(1, Math.floor(W * dpr));
+    canvas.height = Math.max(1, Math.floor(H * dpr));
+
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    canvas.style.cursor = "crosshair";
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+addEventListener("resize", resize);
+resize();
+
+/* =========================================================
+   WEAPONS
+========================================================= */
+
+const WEAPONS = [
+    {name:"M4A1",type:"Assault Rifle",group:"primary",damage:25,rate:105,mag:30,reserve:120,reload:1.65,spread:.055,range:850,move:1,auto:true,color:"#a6b28e"},
+    {name:"AK-74",type:"Assault Rifle",group:"primary",damage:31,rate:135,mag:30,reserve:120,reload:1.9,spread:.075,range:850,move:.96,auto:true,color:"#b28e6e"},
+    {name:"SCAR-L",type:"Assault Rifle",group:"primary",damage:28,rate:115,mag:30,reserve:120,reload:1.8,spread:.045,range:900,move:.98,auto:true,color:"#a6a68a"},
+    {name:"FAMAS",type:"Assault Rifle",group:"primary",damage:24,rate:80,mag:25,reserve:125,reload:1.7,spread:.07,range:800,move:1,auto:true,color:"#899b83"},
+    {name:"MP5",type:"SMG",group:"primary",damage:20,rate:65,mag:30,reserve:150,reload:1.45,spread:.09,range:550,move:1.08,auto:true,color:"#a1a99b"},
+    {name:"UMP45",type:"SMG",group:"primary",damage:29,rate:105,mag:25,reserve:125,reload:1.6,spread:.085,range:600,move:1.06,auto:true,color:"#8d998d"},
+    {name:"P90",type:"SMG",group:"primary",damage:19,rate:60,mag:50,reserve:200,reload:2,spread:.095,range:550,move:1.08,auto:true,color:"#9a9f91"},
+    {name:"Vector",type:"SMG",group:"primary",damage:17,rate:45,mag:25,reserve:150,reload:1.6,spread:.105,range:500,move:1.08,auto:true,color:"#a1a79b"},
+    {name:"Remington 870",type:"Shotgun",group:"primary",damage:13,rate:650,mag:6,reserve:36,reload:2.4,spread:.22,pellets:9,range:400,move:.98,auto:false,color:"#9e8667"},
+    {name:"SPAS-12",type:"Shotgun",group:"primary",damage:11,rate:500,mag:8,reserve:40,reload:2.2,spread:.20,pellets:10,range:400,move:.98,auto:false,color:"#a6a18c"},
+    {name:"Double Barrel",type:"Shotgun",group:"primary",damage:15,rate:850,mag:2,reserve:30,reload:2.3,spread:.24,pellets:12,range:350,move:1,auto:false,color:"#a28b70"},
+    {name:"AWP",type:"Sniper Rifle",group:"primary",damage:100,rate:1000,mag:5,reserve:30,reload:2.6,spread:.008,range:1200,move:.84,auto:false,color:"#8a9d8d"},
+    {name:"Dragunov",type:"Sniper Rifle",group:"primary",damage:68,rate:420,mag:10,reserve:50,reload:2.4,spread:.025,range:1100,move:.88,auto:false,color:"#9d9a7e"},
+    {name:"M24",type:"Sniper Rifle",group:"primary",damage:90,rate:850,mag:5,reserve:30,reload:2.5,spread:.012,range:1200,move:.86,auto:false,color:"#9b9b86"},
+    {name:"M249",type:"LMG",group:"primary",damage:27,rate:95,mag:100,reserve:200,reload:4.2,spread:.11,range:850,move:.78,auto:true,color:"#8c9881"},
+    {name:"RPK",type:"LMG",group:"primary",damage:30,rate:120,mag:75,reserve:150,reload:3.4,spread:.09,range:850,move:.84,auto:true,color:"#9b9679"},
+    {name:"Glock 17",type:"Pistol",group:"secondary",damage:20,rate:170,mag:17,reserve:68,reload:1.2,spread:.07,range:500,move:1.1,auto:false,color:"#a3a99b"},
+    {name:"USP",type:"Pistol",group:"secondary",damage:24,rate:180,mag:12,reserve:60,reload:1.3,spread:.055,range:550,move:1.08,auto:false,color:"#9b9e91"},
+    {name:"Desert Eagle",type:"Pistol",group:"secondary",damage:48,rate:330,mag:7,reserve:42,reload:1.65,spread:.095,range:650,move:1,auto:false,color:"#b2a17d"},
+    {name:"M1911",type:"Pistol",group:"secondary",damage:28,rate:190,mag:8,reserve:48,reload:1.35,spread:.06,range:550,move:1.08,auto:false,color:"#9d9d8a"}
+];
+
+function getWeapon(name) {
+    return WEAPONS.find(w => w.name === name) || WEAPONS[0];
+}
+
+/* =========================================================
+   MAPS
+========================================================= */
+
+const MAPS = [
+    {
+        name:"OLD TOWN",
+        width:1500,
+        height:1100,
+        ground:"#555b4d",
+        accent:"#6a705f",
+        blocks:[
+            [260,170,240,130],[1000,170,240,130],
+            [260,800,240,130],[1000,800,240,130],
+            [680,130,140,110],[680,860,140,110],
+            [100,440,180,100],[1220,440,180,100],
+            [560,430,120,240],[820,430,120,240],
+            [680,500,140,100],
+            [430,510,100,90],[970,510,100,90],
+            [520,320,100,55],[880,725,100,55],
+            [80,180,90,150],[1330,180,90,150],
+            [80,770,90,150],[1330,770,90,150],
+            [520,650,100,70],[880,380,100,70],
+            [680,340,140,45],[680,715,140,45]
+        ],
+        spawns:[
+            [150,150],[1350,150],[150,950],[1350,950],
+            [750,80],[750,1020],[80,550],[1420,550]
+        ]
+    },
+    {
+        name:"INDUSTRIAL",
+        width:1600,
+        height:1150,
+        ground:"#4e5754",
+        accent:"#626e69",
+        blocks:[
+            [170,150,310,180],[1120,150,310,180],
+            [170,820,310,180],[1120,820,310,180],
+            [640,160,320,100],[640,890,320,100],
+            [330,460,180,220],[1090,460,180,220],
+            [650,400,300,70],[650,680,300,70],
+            [760,520,80,110],[570,560,90,90],[940,560,90,90],
+            [70,530,100,100],[1430,530,100,100],
+            [530,300,70,90],[1000,760,70,90],
+            [530,760,70,90],[1000,300,70,90],
+            [250,390,70,45],[1280,710,70,45]
+        ],
+        spawns:[
+            [90,90],[1510,90],[90,1060],[1510,1060],
+            [800,80],[800,1070],[570,350],[1030,800]
+        ]
+    },
+    {
+        name:"CHECKPOINT",
+        width:1450,
+        height:1050,
+        ground:"#68604e",
+        accent:"#7a705c",
+        blocks:[
+            [180,180,260,100],[1010,180,260,100],
+            [180,770,260,100],[1010,770,260,100],
+            [560,160,330,100],[560,790,330,100],
+            [350,410,130,210],[970,410,130,210],
+            [620,390,210,90],[620,570,210,90],
+            [700,485,50,80],[90,480,100,100],[1260,480,100,100],
+            [500,650,90,65],[860,330,90,65],
+            [500,300,65,65],[885,685,65,65],
+            [90,260,70,90],[1290,700,70,90],
+            [680,300,90,45],[680,705,90,45]
+        ],
+        spawns:[
+            [90,90],[1360,90],[90,960],[1360,960],
+            [725,80],[725,970],[520,500],[930,500]
+        ]
+    }
+];
+
+const XR47_CAMERA_ZOOM = 1.6;
+
+/* =========================================================
+   SAVED PLAYER DATA
+========================================================= */
+
+function loadStats() {
+    try {
+        return Object.assign(
+            {
+                kills:0,
+                deaths:0,
+                matches:0,
+                wins:0,
+                best:0
+            },
+            JSON.parse(localStorage.getItem(STORAGE.stats) || "{}")
+        );
+    } catch {
+        return {
+            kills:0,
+            deaths:0,
+            matches:0,
+            wins:0,
+            best:0
+        };
+    }
+}
+
+let stats = loadStats();
+
+function saveStats() {
+    try {
+        localStorage.setItem(
+            STORAGE.stats,
+            JSON.stringify(stats)
+        );
+    } catch {}
+}
+
+function loadLoadout() {
+    try {
+        const saved = JSON.parse(
+            localStorage.getItem(STORAGE.loadout) || "{}"
+        );
+
+        const primary = getWeapon(saved.primary);
+        const secondary = getWeapon(saved.secondary);
+
+        return {
+            primary: primary.group === "primary"
+                ? primary.name
+                : "M4A1",
+
+            secondary: secondary.group === "secondary"
+                ? secondary.name
+                : "Glock 17"
+        };
+    } catch {
+        return {
+            primary:"M4A1",
+            secondary:"Glock 17"
+        };
+    }
+}
+
+const savedLoadout = loadLoadout();
+
+let selectedPrimary = savedLoadout.primary;
+let selectedSecondary = savedLoadout.secondary;
+
+function saveLoadout() {
+    try {
+        localStorage.setItem(
+            STORAGE.loadout,
+            JSON.stringify({
+                primary:selectedPrimary,
+                secondary:selectedSecondary
+            })
+        );
+    } catch {}
+}
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+
+let activePanel = null;
+let gameState = "menu";
+let match = null;
+let player = null;
+let bots = [];
+
+let particles = [];
+let tracers = [];
+let casings = [];
+let decals = [];
+
+let camera = {
+    x:0,
+    y:0,
+    shake:0
+};
+
+let keys = {};
+
+let mouse = {
+    x:W/2,
+    y:H/2,
+    down:false
+};
+
+let lastFrame = performance.now();
+let fpsValue = 0;
+let frameCount = 0;
+let fpsTimer = 0;
+
+let audio = null;
+let menuTime = 0;
+let toastTimer = 0;
+let noticeTimer = 0;
+let lastFootstep = 0;
+let currentMap = MAPS[0];
+
+let renderQualityRow = null;
+
+/* =========================================================
+   HARD LINES AUDIO SYSTEM
+========================================================= */
+
+/*
+    Audio is fetched directly from the Hard Lines repository.
+
+    The browser downloads these assets automatically when
+    XR-47 starts. No local audio folder is required.
+
+    Audio is decoded into AudioBuffers and played through
+    Web Audio. The browser may cache the fetched files.
+
+    If an asset cannot load, XR-47 uses its fallback sound.
+*/
+
+const XR47_AUDIO_BASE =
+    "https://raw.githubusercontent.com/yegors/hard-lines/main/public/audio/";
+
+
+const XR47_AUDIO_FILES = {
+    p226: {
+        report: [
+            "p226-report-0.wav",
+            "p226-report-1.wav",
+            "p226-report-2.wav"
+        ],
+        tail: [
+            "p226-tail-0.mp3",
+            "p226-tail-1.mp3"
+        ]
+    },
+
+    ak47: {
+        report: [
+            "ak47-report-0.wav",
+            "ak47-report-1.wav",
+            "ak47-report-2.wav"
+        ],
+        tail: [
+            "ak47-tail-0.mp3",
+            "ak47-tail-1.mp3",
+            "ak47-tail-2.mp3"
+        ]
+    },
+
+    awm: {
+        report: [
+            "awm-report-0.wav",
+            "awm-report-1.wav",
+            "awm-report-2.wav"
+        ],
+        tail: [
+            "awm-tail-0.mp3",
+            "awm-tail-1.mp3",
+            "awm-tail-2.mp3"
+        ]
+    },
+
+    hk416: {
+        report: [
+            "hk416-report-0.wav",
+            "hk416-report-1.wav",
+            "hk416-report-2.wav"
+        ],
+        tail: [
+            "hk416-tail-0.mp3",
+            "hk416-tail-1.mp3",
+            "hk416-tail-2.mp3"
+        ]
+    },
+
+    kriss: {
+        report: [
+            "kriss-report-0.wav",
+            "kriss-report-1.wav",
+            "kriss-report-2.wav"
+        ],
+        tail: [
+            "kriss-tail-0.mp3",
+            "kriss-tail-1.mp3",
+            "kriss-tail-2.mp3"
+        ]
+    },
+
+    mp5: {
+        report: [
+            "mp5-report-0.wav",
+            "mp5-report-1.wav",
+            "mp5-report-2.wav"
+        ],
+        tail: [
+            "mp5-tail-0.mp3",
+            "mp5-tail-1.mp3",
+            "mp5-tail-2.mp3"
+        ]
+    },
+
+    ump45: {
+        report: [
+            "ump45-report-0.wav",
+            "ump45-report-1.wav",
+            "ump45-report-2.wav"
+        ],
+        tail: [
+            "ump45-tail-0.mp3",
+            "ump45-tail-1.mp3",
+            "ump45-tail-2.mp3"
+        ]
+    },
+
+    shotgun: {
+        report: [
+            "sg-report-0.wav",
+            "sg-report-1.wav"
+        ],
+        tail: [
+            "sg-tail-0.mp3",
+            "sg-tail-1.mp3"
+        ]
+    },
+
+    footsteps: {
+        report: [
+            "step-hard-0.wav",
+            "step-hard-1.wav",
+            "step-hard-2.wav",
+            "step-hard-3.wav"
+        ],
+        tail: []
+    }
+};
+
+
+const xr47AudioBuffers = new Map();
+const xr47AudioLoading = new Map();
+
+let xr47AudioLoadStarted = false;
+let xr47AudioLoadComplete = false;
+
+let xr47AudioStats = {
+    loaded: 0,
+    failed: 0,
+    total: 0
+};
+
+function initAudio() {
+    if (audio) {
+        if (audio.ctx.state === "suspended") {
+            audio.ctx.resume().catch(() => {});
+        }
+
+        if (!xr47AudioLoadStarted) {
+            preloadHardLinesAudio();
+        }
+
+        return;
+    }
+
+    const AudioContext =
+        window.AudioContext ||
+        window.webkitAudioContext;
+
+    if (!AudioContext) {
+        console.warn("XR-47: Web Audio is unavailable.");
+        return;
+    }
+
+    const ac = new AudioContext();
+
+    const master = ac.createGain();
+    master.gain.value = settings.volume;
+    master.connect(ac.destination);
+
+    const effects = ac.createGain();
+    effects.gain.value = 1;
+    effects.connect(master);
+
+    const noiseBuffer = ac.createBuffer(
+        1,
+        Math.floor(ac.sampleRate * 0.4),
+        ac.sampleRate
+    );
+
+    const noiseData = noiseBuffer.getChannelData(0);
+
+    for (let i = 0; i < noiseData.length; i++) {
+        noiseData[i] = Math.random() * 2 - 1;
+    }
+
+    audio = {
+        ctx: ac,
+        master,
+        effects,
+        noiseBuffer
+    };
+
+    ac.resume().catch(() => {});
+    preloadHardLinesAudio();
+}
+
+/*
+    Returns a spatial audio route.
+
+    The player is the listener.
+    World-space X determines stereo direction.
+    Distance determines volume.
+*/
+
+function createSpatialRoute(sourcePosition, volume = 1) {
+    if (!audio) return null;
+
+    const ac = audio.ctx;
+    const gain = ac.createGain();
+
+    let pan = null;
+
+    if (ac.createStereoPanner) {
+        pan = ac.createStereoPanner();
+    }
+
+    let attenuation = 1;
+
+    if (
+        sourcePosition &&
+        player &&
+        sourcePosition !== player
+    ) {
+        const dx = sourcePosition.x - player.x;
+        const dy = sourcePosition.y - player.y;
+
+        const dist = Math.hypot(dx, dy);
+
+        const maxDistance = 1050;
+
+        attenuation = 1 / (
+            1 + Math.pow(dist / 245, 1.55)
+        );
+
+        if (dist >= maxDistance) {
+            attenuation = 0;
+        }
+
+        if (pan) {
+            pan.pan.value = clamp(dx / 340, -1, 1);
+        }
+    }
+
+    gain.gain.value = Math.max(
+        0,
+        volume * attenuation
+    );
+
+    if (pan) {
+        gain.connect(audio.effects);
+        pan.connect(gain);
+
+        return pan;
+    }
+
+    gain.connect(audio.effects);
+    return gain;
+}
+
+function connectSpatial(source, sourcePosition, volume = 1) {
+    const route = createSpatialRoute(
+        sourcePosition,
+        volume
+    );
+
+    if (route) {
+        source.connect(route);
+    } else if (audio) {
+        source.connect(audio.effects);
+    }
+}
+
+async function loadHardLinesFile(filename) {
+    if (!audio) return null;
+
+    if (xr47AudioBuffers.has(filename)) {
+        return xr47AudioBuffers.get(filename);
+    }
+
+    if (xr47AudioLoading.has(filename)) {
+        return xr47AudioLoading.get(filename);
+    }
+
+    const promise = (async () => {
+        try {
+            const response = await fetch(
+                XR47_AUDIO_BASE + encodeURIComponent(filename),
+                {
+                    mode: "cors",
+                    cache: "force-cache"
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}: ${filename}`
+                );
+            }
+
+            const data = await response.arrayBuffer();
+
+            const buffer = await audio.ctx.decodeAudioData(data);
+
+            xr47AudioBuffers.set(filename, buffer);
+            xr47AudioStats.loaded++;
+
+            return buffer;
+        } catch (error) {
+            xr47AudioStats.failed++;
+
+            console.warn(
+                "XR-47 audio asset failed:",
+                filename,
+                error
+            );
+
+            return null;
+        } finally {
+            xr47AudioLoading.delete(filename);
+        }
+    })();
+
+    xr47AudioLoading.set(filename, promise);
+
+    return promise;
+}
+
+async function preloadHardLinesAudio() {
+    if (!audio || xr47AudioLoadStarted) return;
+
+    xr47AudioLoadStarted = true;
+
+    const files = [];
+
+    for (const bank of Object.values(XR47_AUDIO_FILES)) {
+        files.push(...bank.report);
+        files.push(...bank.tail);
+    }
+
+    xr47AudioStats.total = files.length;
+
+    const batchSize = 3;
+
+    for (let i = 0; i < files.length; i += batchSize) {
+        if (!audio) break;
+
+        await Promise.all(
+            files.slice(i, i + batchSize).map(
+                filename => loadHardLinesFile(filename)
+            )
+        );
+    }
+
+    xr47AudioLoadComplete = true;
+
+    console.info(
+        `XR-47 audio: ${xr47AudioStats.loaded}/${xr47AudioStats.total} loaded; ` +
+        `${xr47AudioStats.failed} failed.`
+    );
+}
+
+function chooseAudioVariant(files) {
+    if (!files || !files.length) return null;
+
+    return files[
+        Math.floor(Math.random() * files.length)
+    ];
+}
+
+function playAudioBuffer(
+    buffer,
+    volume = 1,
+    playbackRate = 1,
+    sourcePosition = null
+) {
+    if (!audio || !buffer) return false;
+
+    const ac = audio.ctx;
+
+    if (ac.state === "suspended") {
+        ac.resume().catch(() => {});
+    }
+
+    const source = ac.createBufferSource();
+    const gain = ac.createGain();
+
+    source.buffer = buffer;
+    source.playbackRate.value = playbackRate;
+
+    gain.gain.value = Math.max(0, volume);
+
+    source.connect(gain);
+
+    connectSpatial(
+        gain,
+        sourcePosition,
+        1
+    );
+
+    source.start();
+
+    return true;
+}
+
+function playHardLinesFile(
+    filename,
+    volume = 1,
+    sourcePosition = null
+) {
+    if (!audio || !filename) return false;
+
+    const buffer = xr47AudioBuffers.get(filename);
+
+    if (buffer) {
+        return playAudioBuffer(
+            buffer,
+            volume,
+            1,
+            sourcePosition
+        );
+    }
+
+    loadHardLinesFile(filename).then(loaded => {
+        if (loaded && audio) {
+            playAudioBuffer(
+                loaded,
+                volume,
+                1,
+                sourcePosition
+            );
+        }
+    });
+
+    return false;
+}
+
+function getHardLinesBank(weapon) {
+    if (!weapon) return null;
+
+    const banks = {
+        // Assault rifles
+        "M4A1": "hk416",
+        "AK-74": "ak47",
+        "SCAR-L": "hk416",
+        "FAMAS": "hk416",
+
+        // SMGs
+        "MP5": "mp5",
+        "UMP45": "ump45",
+        "P90": "mp5",
+        "Vector": "kriss",
+
+        // Shotguns
+        "Remington 870": "shotgun",
+        "SPAS-12": "shotgun",
+        "Double Barrel": "shotgun",
+
+        // Sniper rifles
+        "AWP": "awm",
+        "Dragunov": "awm",
+        "M24": "awm",
+
+        // Light machine guns
+        "M249": "ak47",
+        "RPK": "ak47",
+
+        // Pistols
+        "Glock 17": "p226",
+        "USP": "p226",
+        "Desert Eagle": "p226",
+        "M1911": "p226"
+    };
+
+    const bankName = banks[weapon.name];
+
+    return bankName
+        ? XR47_AUDIO_FILES[bankName] || null
+        : null;
+}
+
+function playHardLinesGun(
+    weapon,
+    scale = 1,
+    sourcePosition = null
+) {
+    if (!audio || !audio.ctx) return false;
+
+    const bank = getHardLinesBank(weapon);
+    if (!bank) return false;
+
+const bankName = Object.keys(XR47_AUDIO_FILES).find(
+    key => XR47_AUDIO_FILES[key] === bank
+);
+
+    if (!bank || !bank.report || bank.report.length === 0) {
+        console.error("Missing Hard Lines audio bank:", bankName);
+        return false;
+    }
+
+    const report = chooseAudioVariant(bank.report);
+    const tail = chooseAudioVariant(bank.tail || []);
+
+    if (!report) return false;
+
+    const playReport = buffer => {
+        if (!buffer || !audio) return;
+
+        playAudioBuffer(
+            buffer,
+            scale,
+            rand(.97, 1.03),
+            sourcePosition
+        );
+    };
+
+    const reportBuffer = xr47AudioBuffers.get(report);
+
+    if (reportBuffer) {
+        playReport(reportBuffer);
+    } else {
+        loadHardLinesFile(report).then(buffer => {
+            if (buffer) {
+                playReport(buffer);
+            } else {
+                console.error("Failed to load Hard Lines report:", report);
+            }
+        });
+    }
+
+    if (tail) {
+        const delay = bankName === "shotgun" ? 0.12 : 0.10;
+        const tailVolume = scale * (
+            bankName === "shotgun" ? 0.48 : 0.34
+        );
+
+        const playTail = buffer => {
+            if (!buffer || !audio) return;
+
+            const ac = audio.ctx;
+            const source = ac.createBufferSource();
+            const gain = ac.createGain();
+
+            source.buffer = buffer;
+            gain.gain.value = tailVolume;
+
+            source.connect(gain);
+            connectSpatial(gain, sourcePosition, 1);
+
+            source.start(ac.currentTime + delay);
+        };
+
+        const tailBuffer = xr47AudioBuffers.get(tail);
+
+        if (tailBuffer) {
+            playTail(tailBuffer);
+        } else {
+            loadHardLinesFile(tail).then(playTail);
+        }
+    }
+
+    return true;
+}
+
+
+function noiseBurst(
+    duration,
+    volume,
+    highpass,
+    lowpass,
+    scale = 1,
+    center = null,
+    sourcePosition = null
+) {
+    if (!audio) return;
+
+    const ac = audio.ctx;
+    const now = ac.currentTime;
+
+    const source = ac.createBufferSource();
+    const hp = ac.createBiquadFilter();
+    const lp = ac.createBiquadFilter();
+    const gain = ac.createGain();
+
+    source.buffer = audio.noiseBuffer;
+
+    source.playbackRate.value = rand(0.88, 1.12);
+
+    hp.type = "highpass";
+    hp.frequency.setValueAtTime(highpass, now);
+
+    lp.type = center ? "bandpass" : "lowpass";
+    lp.frequency.setValueAtTime(center || lowpass, now);
+    lp.Q.value = center ? 0.9 : 0.65;
+
+    const peak = Math.max(0.0001, volume * scale);
+    const length = Math.max(0.025, duration);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(
+        peak,
+        now + 0.003
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        now + length
+    );
+
+    source.connect(hp);
+    hp.connect(lp);
+    lp.connect(gain);
+
+    connectSpatial(gain, sourcePosition, 1);
+
+    source.start(now);
+    source.stop(now + length + 0.015);
+}
+
+
+
+function tone(
+    freq,
+    duration,
+    type = "sine",
+    volume = 0.1,
+    endFreq = null,
+    sourcePosition = null
+) {
+    if (!audio) return;
+
+    const ac = audio.ctx;
+    const now = ac.currentTime;
+
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+
+    osc.type = type;
+
+    osc.frequency.setValueAtTime(
+        Math.max(1, freq),
+        now
+    );
+
+    if (endFreq) {
+        osc.frequency.exponentialRampToValueAtTime(
+            Math.max(1, endFreq),
+            now + duration
+        );
+    }
+
+    gain.gain.setValueAtTime(0.0001, now);
+
+    gain.gain.exponentialRampToValueAtTime(
+        Math.max(0.0001, volume),
+        now + 0.003
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        now + duration
+    );
+
+    osc.connect(gain);
+    connectSpatial(gain, sourcePosition, 1);
+
+    osc.start(now);
+    osc.stop(now + duration + 0.015);
+}
+
+
+function startAmbient() {
+    // No continuous noise generator.
+}
+
+function setVolume() {
+    if (!audio) return;
+
+    audio.master.gain.setTargetAtTime(
+        settings.volume,
+        audio.ctx.currentTime,
+        0.04
+    );
+}
+
+
+function gunSound(
+    weapon,
+    scale = 1,
+    sourcePosition = null
+) {
+    if (!audio || !weapon) return;
+
+    // Use Hard Lines recordings whenever available.
+    if (
+        typeof playHardLinesGun === "function" &&
+        playHardLinesGun(
+            weapon,
+            scale,
+            sourcePosition
+        )
+    ) {
+        return;
+    }
+
+    const profiles = {
+        "Assault Rifle": {
+            crack: 0.75,
+            body: 0.48,
+            boom: 0.20,
+            crackLength: 0.075,
+            bodyLength: 0.15,
+            boomLength: 0.13,
+            highpass: 650,
+            lowpass: 11000,
+            center: 650,
+            pitch: 115,
+            endPitch: 48
+        },
+
+        "SMG": {
+            crack: 0.62,
+            body: 0.32,
+            boom: 0.13,
+            crackLength: 0.055,
+            bodyLength: 0.10,
+            boomLength: 0.09,
+            highpass: 1100,
+            lowpass: 12000,
+            center: 1200,
+            pitch: 155,
+            endPitch: 75
+        },
+
+        "Shotgun": {
+            crack: 0.90,
+            body: 0.75,
+            boom: 0.32,
+            crackLength: 0.11,
+            bodyLength: 0.23,
+            boomLength: 0.22,
+            highpass: 400,
+            lowpass: 9000,
+            center: 420,
+            pitch: 85,
+            endPitch: 32
+        },
+
+        "Sniper Rifle": {
+            crack: 1.0,
+            body: 0.65,
+            boom: 0.27,
+            crackLength: 0.13,
+            bodyLength: 0.25,
+            boomLength: 0.22,
+            highpass: 500,
+            lowpass: 10500,
+            center: 520,
+            pitch: 95,
+            endPitch: 35
+        },
+
+        "Pistol": {
+            crack: 0.65,
+            body: 0.35,
+            boom: 0.13,
+            crackLength: 0.065,
+            bodyLength: 0.12,
+            boomLength: 0.10,
+            highpass: 1000,
+            lowpass: 11000,
+            center: 1500,
+            pitch: 145,
+            endPitch: 65
+        },
+
+        "LMG": {
+            crack: 0.78,
+            body: 0.58,
+            boom: 0.24,
+            crackLength: 0.085,
+            bodyLength: 0.18,
+            boomLength: 0.16,
+            highpass: 550,
+            lowpass: 10000,
+            center: 550,
+            pitch: 105,
+            endPitch: 42
+        }
+    };
+
+    const profile = profiles[weapon.type] ||
+        profiles["Assault Rifle"];
+
+    const name = weapon.name || "";
+
+    // Slight weapon-specific variations.
+    let pitchMultiplier = 1;
+    let volumeMultiplier = 1;
+
+    if (name === "AK-74") {
+        pitchMultiplier = 0.88;
+        volumeMultiplier = 1.12;
+    }
+
+    if (name === "SCAR-L") {
+        pitchMultiplier = 1.06;
+    }
+
+    if (name === "FAMAS") {
+        pitchMultiplier = 1.12;
+    }
+
+    if (name === "AWP" || name === "M24") {
+        pitchMultiplier = 0.82;
+        volumeMultiplier = 1.2;
+    }
+
+    if (name === "Dragunov") {
+        pitchMultiplier = 0.94;
+    }
+
+    if (name === "M249" || name === "RPK") {
+        volumeMultiplier = 1.12;
+    }
+
+    if (name === "Desert Eagle") {
+        pitchMultiplier = 0.78;
+        volumeMultiplier = 1.15;
+    }
+
+    const finalScale = scale * volumeMultiplier;
+
+    // Sharp muzzle crack.
+    noiseBurst(
+        profile.crackLength,
+        profile.crack,
+        profile.highpass,
+        profile.lowpass,
+        finalScale,
+        null,
+        sourcePosition
+    );
+
+    // Main body of the gunshot.
+    noiseBurst(
+        profile.bodyLength,
+        profile.body,
+        90,
+        profile.lowpass,
+        finalScale,
+        profile.center,
+        sourcePosition
+    );
+
+    // Low-frequency punch.
+    tone(
+        profile.pitch * pitchMultiplier,
+        profile.boomLength,
+        "triangle",
+        profile.boom * finalScale,
+        profile.endPitch * pitchMultiplier,
+        sourcePosition
+    );
+
+    // Short metallic upper transient.
+    tone(
+        profile.pitch * 5 * pitchMultiplier,
+        0.025,
+        "square",
+        0.035 * finalScale,
+        profile.pitch * 2 * pitchMultiplier,
+        sourcePosition
+    );
+}
+
+
+function reloadSound() {
+    if (!audio) return;
+
+    noiseBurst(0.025, 0.09, 700, 3200);
+    tone(440, 0.035, "square", 0.018, 300);
+
+    setTimeout(() => {
+        noiseBurst(0.04, 0.12, 1100, 5200);
+        tone(720, 0.04, "triangle", 0.025, 480);
+    }, 240);
+
+    setTimeout(() => {
+        noiseBurst(0.045, 0.11, 850, 4500);
+        tone(560, 0.035, "square", 0.02, 350);
+    }, 650);
+
+    setTimeout(() => {
+        noiseBurst(0.025, 0.10, 1800, 7500);
+        tone(900, 0.035, "triangle", 0.025, 620);
+    }, 1050);
+}
+
+function impactSound(headshot = false, sourcePosition = null) {
+    if (!audio) return;
+
+    noiseBurst(
+        0.028,
+        0.10,
+        headshot ? 1900 : 900,
+        headshot ? 8500 : 5000,
+        1,
+        null,
+        sourcePosition
+    );
+
+    tone(
+        headshot ? 1000 : 560,
+        0.045,
+        "triangle",
+        0.025,
+        headshot ? 720 : 350,
+        sourcePosition
+    );
+}
+
+function deathSound(sourcePosition = null) {
+    if (!audio) return;
+
+    noiseBurst(
+        0.09,
+        0.08,
+        500,
+        2400,
+        1,
+        null,
+        sourcePosition
+    );
+
+    noiseBurst(
+        0.035,
+        0.055,
+        1200,
+        5000,
+        1,
+        null,
+        sourcePosition
+    );
+}
+
+function footstepSound() {
+    if (!audio) return;
+
+    const filename = chooseAudioVariant(
+        XR47_AUDIO_FILES.footsteps.report
+    );
+
+    if (filename) {
+        const buffer = xr47AudioBuffers.get(filename);
+
+        if (buffer) {
+            playAudioBuffer(
+                buffer,
+                0.28,
+                rand(0.88, 1.08),
+                player
+            );
+        } else {
+            loadHardLinesFile(filename).then(loaded => {
+                if (loaded && audio) {
+                    playAudioBuffer(
+                        loaded,
+                        0.28,
+                        rand(0.88, 1.08),
+                        player
+                    );
+                }
+            });
+        }
+
+        return;
+    }
+
+    noiseBurst(0.025, 0.035, 180, 1100, 1, null, player);
+}
+
+function clickSound() {
+    tone(650, 0.035, "square", 0.025, 420);
+}
+
+/* =========================================================
+   UI HELPERS
+========================================================= */
+
+function showToast(message) {
+    const el = document.getElementById("toast");
+    if (!el) return;
+
+    el.textContent = message;
+    el.classList.add("show");
+
+    clearTimeout(toastTimer);
+
+    toastTimer = setTimeout(() => {
+        el.classList.remove("show");
+    },1900);
+}
+
+function showNotice(message) {
+    const el = document.getElementById("notice");
+    if (!el) return;
+
+    el.textContent = message;
+    el.classList.add("show");
+
+    clearTimeout(noticeTimer);
+
+    noticeTimer = setTimeout(() => {
+        el.classList.remove("show");
+    },1100);
+}
+
+function ensureRenderQualitySetting() {
+    if (document.getElementById("renderScaleSetting")) return;
+
+    const fpsInput = document.getElementById("fpsSetting");
+
+    if (!fpsInput) return;
+
+    const fpsRow = fpsInput.closest(".setting-row");
+
+    if (!fpsRow) return;
+
+    const row = document.createElement("div");
+    row.className = "setting-row";
+
+    row.innerHTML = `
+        <label>
+            Render quality
+            <small>Lower values reduce GPU workload</small>
+        </label>
+
+        <select id="renderScaleSetting">
+            <option value="1">100% — High</option>
+            <option value="0.85">85% — Balanced</option>
+            <option value="0.7">70% — Performance</option>
+        </select>
+    `;
+
+    fpsRow.after(row);
+}
+
+function openPanel(name) {
+    initAudio();
+    clickSound();
+
+    if (gameState === "playing") return;
+
+    activePanel = name;
+
+    document.querySelectorAll(".screen").forEach(el => {
+        el.classList.remove("active");
+    });
+
+    const panel = document.getElementById(name);
+
+    if (!panel) return;
+
+    panel.classList.add("active");
+
+    if (name === "loadout") renderLoadout();
+    if (name === "statistics") renderStatistics();
+
+    if (name === "settings") {
+        ensureRenderQualitySetting();
+        populateSettings();
+    }
+}
+
+function closePanel() {
+    clickSound();
+
+    activePanel = null;
+
+    document.querySelectorAll(".screen").forEach(el => {
+        el.classList.remove("active");
+    });
+
+    document.getElementById("menu").classList.add("active");
+}
+
+/* =========================================================
+   LOADOUT
+========================================================= */
+
+function renderLoadout() {
+    const primary = document.getElementById("primaryGrid");
+    const secondary = document.getElementById("secondaryGrid");
+
+    if (!primary || !secondary) return;
+
+    primary.innerHTML = "";
+    secondary.innerHTML = "";
+
+    for (const weapon of WEAPONS) {
+        const card = document.createElement("button");
+
+        card.className = "weapon-card";
+
+        const selected = weapon.group === "primary"
+            ? weapon.name === selectedPrimary
+            : weapon.name === selectedSecondary;
+
+        card.classList.toggle("selected",selected);
+
+        card.innerHTML = `
+            <span class="weapon-name">${weapon.name}</span>
+            <span class="weapon-type">${weapon.type}</span>
+
+            <span class="weapon-stats">
+                <span>${weapon.damage} DMG</span>
+                <span>${weapon.mag} MAG</span>
+                <span>${Math.round(60000/weapon.rate)} RPM</span>
+            </span>
+        `;
+
+        card.addEventListener("click",() => {
+            clickSound();
+
+            if (weapon.group === "primary") {
+                selectedPrimary = weapon.name;
+            } else {
+                selectedSecondary = weapon.name;
+            }
+
+            saveLoadout();
+            renderLoadout();
+        });
+
+        (
+            weapon.group === "primary"
+                ? primary
+                : secondary
+        ).appendChild(card);
+    }
+}
+
+function resetLoadout() {
+    selectedPrimary = "M4A1";
+    selectedSecondary = "Glock 17";
+
+    saveLoadout();
+    renderLoadout();
+
+    showToast("DEFAULT LOADOUT RESTORED");
+}
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+function populateSettings() {
+    ensureRenderQualitySetting();
+
+    const setValue = (id,value) => {
+        const element = document.getElementById(id);
+
+        if (element) element.value = value;
+    };
+
+    setValue("volumeSetting",settings.volume*100);
+    setValue("sensitivitySetting",settings.sensitivity*100);
+    setValue("shakeSetting",settings.shake ? "on" : "off");
+    setValue("fpsSetting",settings.fps ? "on" : "off");
+    setValue("durationSetting",settings.duration);
+    setValue("killSetting",settings.killLimit);
+    setValue("renderScaleSetting",String(settings.renderScale));
+}
+
+function saveSettings() {
+    settings.volume =
+        Number(document.getElementById("volumeSetting").value)/100;
+
+    settings.sensitivity =
+        Number(document.getElementById("sensitivitySetting").value)/100;
+
+    settings.shake =
+        document.getElementById("shakeSetting").value === "on";
+
+    settings.fps =
+        document.getElementById("fpsSetting").value === "on";
+
+    settings.duration =
+        Number(document.getElementById("durationSetting").value);
+
+    settings.killLimit =
+        Number(document.getElementById("killSetting").value);
+
+    const renderScaleInput =
+        document.getElementById("renderScaleSetting");
+
+    if (renderScaleInput) {
+        settings.renderScale = Number(renderScaleInput.value);
+    }
+
+    saveSettingsToStorage();
+    setVolume();
+    resize();
+    clickSound();
+
+    showToast("SETTINGS SAVED");
+}
+
+/* =========================================================
+   STATISTICS
+========================================================= */
+
+function renderStatistics() {
+    document.getElementById("statKills").textContent = stats.kills;
+    document.getElementById("statDeaths").textContent = stats.deaths;
+    document.getElementById("statMatches").textContent = stats.matches;
+    document.getElementById("statWins").textContent = stats.wins;
+
+    document.getElementById("statKD").textContent =
+        (stats.kills/Math.max(1,stats.deaths)).toFixed(2);
+
+    document.getElementById("statBest").textContent = stats.best;
+}
+
+function resetStatistics() {
+    stats = {
+        kills:0,
+        deaths:0,
+        matches:0,
+        wins:0,
+        best:0
+    };
+
+    saveStats();
+    renderStatistics();
+
+    showToast("STATISTICS RESET");
+}
+
+function getSafeSpawnPosition(preferredX, preferredY) {
+    const radius = 13;
+
+    // First, try the requested position.
+    if (!blocked(preferredX, preferredY, radius)) {
+        return [preferredX, preferredY];
+    }
+
+    // Search outward in expanding circles.
+    for (let ring = 1; ring <= 20; ring++) {
+        const distance = ring * 18;
+        const points = Math.max(12, ring * 8);
+
+        for (let i = 0; i < points; i++) {
+            const angle = (i / points) * Math.PI * 2;
+
+            const x = preferredX + Math.cos(angle) * distance;
+            const y = preferredY + Math.sin(angle) * distance;
+
+            if (!blocked(x, y, radius)) {
+                return [x, y];
+            }
+        }
+    }
+
+    // Last resort: search the entire map.
+    for (let y = 30; y < currentMap.height - 30; y += 24) {
+        for (let x = 30; x < currentMap.width - 30; x += 24) {
+            if (!blocked(x, y, radius)) {
+                return [x, y];
+            }
+        }
+    }
+
+    return [
+        currentMap.width / 2,
+        currentMap.height / 2
+    ];
+}
+
+/* =========================================================
+   FIGHTERS
+========================================================= */
+
+function createFighter(id, isPlayer, spawn, weaponName) {
+    const weapon = getWeapon(weaponName);
+
+    const safeSpawn = getSafeSpawnPosition(
+        spawn[0],
+        spawn[1]
+    );
+
+    const names = [
+        "RANGER", "NOMAD", "VEX", "GHOST", "MAVERICK",
+        "ROOK", "SPECTRE", "CIPHER", "HOLLOW", "WRAITH",
+        "FALCON", "GRIT", "STATIC", "BLAZE"
+    ];
+
+    const fighter = {
+        id,
+
+        name: isPlayer
+            ? "YOU"
+            : names[Math.floor(Math.random() * names.length)] +
+                (Math.random() > .55 ? "" : "-" + Math.floor(rand(1, 99))),
+
+        isPlayer,
+
+        x: safeSpawn[0],
+        y: safeSpawn[1],
+
+        vx: 0,
+        vy: 0,
+        angle: 0,
+
+        health: 100,
+        maxHealth: 100,
+
+        alive: true,
+        respawn: 0,
+        spawnShield: 0,
+
+        kills: 0,
+        deaths: 0,
+
+        weaponName,
+        ammo: weapon.mag,
+        reserve: weapon.reserve,
+
+        reloading: 0,
+        fireTimer: 0,
+        hitFlash: 0,
+        muzzle: 0,
+        recoil: 0,
+        walk: 0,
+
+        aiThink: rand(.4, 1),
+        target: null,
+        targetX: safeSpawn[0],
+        targetY: safeSpawn[1],
+
+        strafe: Math.random() > .5 ? 1 : -1,
+
+        vest: isPlayer
+            ? "#566c46"
+            : ["#555d4d", "#555a50", "#62604f", "#4c5b52"][
+                Math.floor(Math.random() * 4)
+            ],
+
+        lastDamage: 0,
+        botSkill: rand(.35, .62),
+        reaction: rand(.6, 1.15),
+        aimError: rand(.09, .19)
+    };
+
+    if (isPlayer) {
+        fighter.activeSlot = "primary";
+
+        fighter.primarySlot = {
+            name: selectedPrimary,
+            ammo: getWeapon(selectedPrimary).mag,
+            reserve: getWeapon(selectedPrimary).reserve
+        };
+
+        fighter.secondarySlot = {
+            name: selectedSecondary,
+            ammo: getWeapon(selectedSecondary).mag,
+            reserve: getWeapon(selectedSecondary).reserve
+        };
+    }
+
+    return fighter;
+}
+
+/* =========================================================
+   MATCH MANAGEMENT
+========================================================= */
+
+function startMatch() {
+    initAudio();
+    clickSound();
+
+    document.querySelectorAll(".screen").forEach(el => {
+        el.classList.remove("active");
+    });
+
+    document.getElementById("pauseScreen").classList.remove("active");
+    document.getElementById("endScreen").classList.remove("active");
+    document.getElementById("hud").classList.add("active");
+
+    currentMap = MAPS[
+        Math.floor(Math.random()*MAPS.length)
+    ];
+
+    match = {
+        time:settings.duration,
+        elapsed:0,
+        killLimit:settings.killLimit,
+        ended:false,
+        mapName:currentMap.name,
+        start:performance.now()
+    };
+
+    player = createFighter(
+        0,
+        true,
+        currentMap.spawns[0],
+        selectedPrimary
+    );
+
+    bots = [];
+
+    for (let i=0;i<7;i++) {
+        const spawn =
+            currentMap.spawns[(i+1)%currentMap.spawns.length];
+
+        const pool = WEAPONS.filter(
+            weapon => weapon.group === "primary"
+        );
+
+        const weapon = pool[
+            Math.floor(Math.random()*pool.length)
+        ];
+
+        bots.push(
+            createFighter(i+1,false,spawn,weapon.name)
+        );
+    }
+
+    particles = [];
+    tracers = [];
+    casings = [];
+    decals = [];
+
+    camera.x = 0;
+    camera.y = 0;
+    camera.shake = 0;
+
+    keys = {};
+    mouse.down = false;
+
+    gameState = "playing";
+
+    stats.matches++;
+    saveStats();
+
+    document.getElementById("killfeed").innerHTML = "";
+
+    showNotice(currentMap.name+" — FREE FOR ALL");
+    updateHUD();
+}
+
+function resumeGame() {
+    clickSound();
+
+    document.getElementById("pauseScreen").classList.remove("active");
+
+    gameState = "playing";
+}
+
+function pauseGame() {
+    if (gameState !== "playing") return;
+
+    gameState = "paused";
+    mouse.down = false;
+
+    document.getElementById("pauseScreen").classList.add("active");
+}
+
+function endToMenu() {
+    gameState = "menu";
+
+    mouse.down = false;
+    match = null;
+    player = null;
+    bots = [];
+
+    document.getElementById("hud").classList.remove("active");
+    document.getElementById("pauseScreen").classList.remove("active");
+    document.getElementById("endScreen").classList.remove("active");
+
+    document.querySelectorAll(".screen").forEach(el => {
+        el.classList.remove("active");
+    });
+
+    document.getElementById("menu").classList.add("active");
+}
+
+function finishMatch() {
+    if (!match || match.ended) return;
+
+    match.ended = true;
+    gameState = "ended";
+    mouse.down = false;
+
+    const board = [player,...bots].sort(
+        (a,b) => b.kills-a.kills
+    );
+
+    const winner = board[0];
+    const won = winner === player;
+
+    if (won) stats.wins++;
+
+    stats.best = Math.max(stats.best,player.kills);
+    saveStats();
+
+    document.getElementById("endTitle").textContent =
+        won ? "Victory" : "Defeated";
+
+    document.getElementById("endSummary").textContent =
+        `${player.kills} kills · ${player.deaths} deaths · ${match.mapName}`;
+
+    const rows = board.map((fighter,index) => `
+        <tr class="${fighter.isPlayer ? "me" : ""}">
+            <td>${index+1}</td>
+            <td>${fighter.name}</td>
+            <td>${fighter.kills}</td>
+            <td>${fighter.deaths}</td>
+        </tr>
+    `).join("");
+
+    document.getElementById("finalBoard").innerHTML = `
+        <table class="scoreboard">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Player</th>
+                    <th>K</th>
+                    <th>D</th>
+                </tr>
+            </thead>
+
+            <tbody>${rows}</tbody>
+        </table>
+    `;
+
+    document.getElementById("hud").classList.remove("active");
+    document.getElementById("endScreen").classList.add("active");
+
+    tone(
+        won ? 520 : 170,
+        .5,
+        "triangle",
+        .12,
+        won ? 850 : 55
+    );
+}
+
+/* =========================================================
+   HUD
+========================================================= */
+
+function updateHUD() {
+    if (!player || !match) return;
+
+    document.getElementById("hudKills").textContent =
+        player.kills;
+
+    const remaining = match.time;
+
+    document.getElementById("hudTime").textContent =
+        settings.duration === 0
+            ? "∞"
+            : `${String(Math.floor(Math.max(0,remaining)/60)).padStart(2,"0")}:${String(Math.floor(Math.max(0,remaining)%60)).padStart(2,"0")}`;
+
+    document.getElementById("hudAlive").textContent =
+        [player,...bots].filter(f => f.alive).length;
+
+    document.getElementById("hudLimit").textContent =
+        match.killLimit === 0 ? "∞" : match.killLimit;
+
+    document.getElementById("healthNumber").textContent =
+        Math.ceil(player.health);
+
+    document.getElementById("healthFill").style.width =
+        player.health+"%";
+
+    const weapon = getWeapon(player.weaponName);
+
+    document.getElementById("weaponHud").textContent =
+        weapon.name;
+
+    document.getElementById("ammoHud").innerHTML =
+        `${player.ammo} <span>/ ${player.reserve}</span>`;
+
+    document.getElementById("ammoLabel").textContent =
+        weapon.type.toUpperCase();
+
+    document.getElementById("crosshair").style.opacity =
+        player.alive ? "1" : ".25";
+}
+
+function addFeed(killer,victim,headshot=false) {
+    const feed = document.getElementById("killfeed");
+    const item = document.createElement("div");
+
+    item.className = "feed-item";
+
+    const killerName = document.createElement("strong");
+    killerName.textContent = killer.name;
+
+    const victimName = document.createElement("span");
+    victimName.textContent = victim.name;
+
+    item.appendChild(killerName);
+    item.append(
+        "  " + (headshot ? "✦" : "›") + "  "
+    );
+    item.appendChild(victimName);
+
+    feed.prepend(item);
+
+    while (feed.children.length>5) {
+        feed.lastChild.remove();
+    }
+
+    setTimeout(() => item.remove(),4200);
+}
+
+/* =========================================================
+   EFFECTS
+========================================================= */
+
+function spawnParticles(x,y,count,color,speed=140) {
+    for (let i=0;i<count;i++) {
+        const a = rand(0,Math.PI*2);
+        const s = rand(speed*.25,speed);
+
+        particles.push({
+            x,
+            y,
+            vx:Math.cos(a)*s,
+            vy:Math.sin(a)*s,
+            life:rand(.18,.65),
+            maxLife:.65,
+            size:rand(1,4),
+            color
+        });
+    }
+}
+
+function spawnDeath(fighter) {
+    spawnParticles(
+        fighter.x,
+        fighter.y,
+        25,
+        "#a94b3c",
+        180
+    );
+
+    spawnParticles(
+        fighter.x,
+        fighter.y,
+        10,
+        "#d7c3a0",
+        100
+    );
+
+    decals.push({
+        x:fighter.x,
+        y:fighter.y,
+        r:rand(10,18),
+        life:20
+    });
+
+    deathSound(fighter);
+}
+
+function respawnFighter(fighter) {
+    const enemies = [player, ...bots].filter(
+        f => f && f !== fighter && f.alive
+    );
+
+    const safeSpawns = currentMap.spawns.map(spawn =>
+        getSafeSpawnPosition(spawn[0], spawn[1])
+    );
+
+    let bestSpawn = safeSpawns[0];
+    let bestScore = -Infinity;
+
+    for (const candidate of safeSpawns) {
+        if (blocked(candidate[0], candidate[1], 13)) {
+            continue;
+        }
+
+        let nearest = Infinity;
+
+        for (const enemy of enemies) {
+            nearest = Math.min(
+                nearest,
+                Math.hypot(
+                    candidate[0] - enemy.x,
+                    candidate[1] - enemy.y
+                )
+            );
+        }
+
+        if (nearest > bestScore) {
+            bestScore = nearest;
+            bestSpawn = candidate;
+        }
+    }
+
+    const safePosition = getSafeSpawnPosition(
+        bestSpawn[0],
+        bestSpawn[1]
+    );
+
+    fighter.x = safePosition[0];
+    fighter.y = safePosition[1];
+
+    fighter.vx = 0;
+    fighter.vy = 0;
+
+    fighter.health = 100;
+    fighter.alive = true;
+    fighter.respawn = 0;
+    fighter.spawnShield = 1.6;
+
+    fighter.ammo = getWeapon(fighter.weaponName).mag;
+    fighter.reserve = getWeapon(fighter.weaponName).reserve;
+
+    fighter.reloading = 0;
+    fighter.fireTimer = 0;
+    fighter.lastDamage = 0;
+    fighter.target = null;
+
+    fighter.targetX = fighter.x;
+    fighter.targetY = fighter.y;
+    fighter.targetMemory = 0;
+
+    if (fighter.isPlayer) {
+        fighter.primarySlot.ammo =
+            getWeapon(fighter.primarySlot.name).mag;
+
+        fighter.primarySlot.reserve =
+            getWeapon(fighter.primarySlot.name).reserve;
+
+        fighter.secondarySlot.ammo =
+            getWeapon(fighter.secondarySlot.name).mag;
+
+        fighter.secondarySlot.reserve =
+            getWeapon(fighter.secondarySlot.name).reserve;
+
+        const slot = fighter.activeSlot === "primary"
+            ? fighter.primarySlot
+            : fighter.secondarySlot;
+
+        fighter.weaponName = slot.name;
+        fighter.ammo = slot.ammo;
+        fighter.reserve = slot.reserve;
+
+        updateHUD();
+    }
+}
+
+function killFighter(victim,killer,headshot=false) {
+    if (!victim.alive) return;
+
+    victim.alive = false;
+    victim.health = 0;
+    victim.deaths++;
+    victim.respawn = 2;
+
+    killer.kills++;
+
+    spawnDeath(victim);
+    addFeed(killer,victim,headshot);
+
+    if (killer.isPlayer) {
+        stats.kills++;
+        saveStats();
+
+        showNotice(headshot ? "HEADSHOT" : "ELIMINATION");
+
+        tone(
+            headshot ? 1050 : 780,
+            .08,
+            "square",
+            .07,
+            500
+        );
+    }
+
+    if (victim.isPlayer) {
+        stats.deaths++;
+        saveStats();
+
+        showNotice("ELIMINATED");
+    }
+
+    updateHUD();
+
+    if (
+        match.killLimit>0 &&
+        killer.kills>=match.killLimit
+    ) {
+        finishMatch();
+    }
+}
+
+/* =========================================================
+   COLLISION
+========================================================= */
+
+function circleRect(x,y,r,rect) {
+    const cx = clamp(x,rect.x,rect.x+rect.w);
+    const cy = clamp(y,rect.y,rect.y+rect.h);
+
+    return Math.hypot(x-cx,y-cy)<r;
+}
+
+function blocked(x,y,r=0) {
+    if (
+        x<r ||
+        y<r ||
+        x>currentMap.width-r ||
+        y>currentMap.height-r
+    ) {
+        return true;
+    }
+
+    for (const b of currentMap.blocks) {
+        if (
+            circleRect(x,y,r,{
+                x:b[0],
+                y:b[1],
+                w:b[2],
+                h:b[3]
+            })
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function lineBlocked(x1,y1,x2,y2) {
+    const dx = x2-x1;
+    const dy = y2-y1;
+
+    const steps = Math.ceil(
+        Math.hypot(dx,dy)/18
+    );
+
+    for (let i=1;i<steps;i++) {
+        const t = i/steps;
+
+        if (
+            blocked(
+                x1+dx*t,
+                y1+dy*t,
+                1
+            )
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function moveFighter(fighter,dx,dy) {
+    const nx = fighter.x+dx;
+    const ny = fighter.y+dy;
+
+    if (!blocked(nx,fighter.y,13)) {
+        fighter.x = nx;
+    }
+
+    if (!blocked(fighter.x,ny,13)) {
+        fighter.y = ny;
+    }
+}
+
+/* =========================================================
+   RELOADING AND WEAPON SWITCHING
+========================================================= */
+
+function beginReload(fighter) {
+    if (
+        !fighter.alive ||
+        fighter.reloading>0
+    ) {
+        return;
+    }
+
+    const weapon = getWeapon(fighter.weaponName);
+
+    if (
+        fighter.ammo>=weapon.mag ||
+        fighter.reserve<=0
+    ) {
+        return;
+    }
+
+    fighter.reloading = weapon.reload;
+
+    if (fighter.isPlayer) {
+        reloadSound();
+        showNotice("RELOADING");
+    }
+}
+
+function completeReload(fighter) {
+    const weapon = getWeapon(fighter.weaponName);
+
+    const needed = weapon.mag-fighter.ammo;
+    const loaded = Math.min(needed,fighter.reserve);
+
+    fighter.ammo += loaded;
+    fighter.reserve -= loaded;
+    fighter.reloading = 0;
+
+    if (fighter.isPlayer) {
+        saveActiveWeaponAmmo();
+        updateHUD();
+    }
+}
+
+function saveActiveWeaponAmmo() {
+    if (!player) return;
+
+    const slot = player.activeSlot === "primary"
+        ? player.primarySlot
+        : player.secondarySlot;
+
+    if (!slot) return;
+
+    slot.name = player.weaponName;
+    slot.ammo = player.ammo;
+    slot.reserve = player.reserve;
+}
+
+function switchWeapon(fighter,secondary=false) {
+    if (!fighter.isPlayer || !fighter.alive) return;
+
+    const nextSlot = secondary
+        ? "secondary"
+        : "primary";
+
+    if (fighter.activeSlot===nextSlot) return;
+
+    saveActiveWeaponAmmo();
+
+    const slot = nextSlot === "primary"
+        ? fighter.primarySlot
+        : fighter.secondarySlot;
+
+    if (!slot) return;
+
+    fighter.activeSlot = nextSlot;
+    fighter.weaponName = slot.name;
+    fighter.ammo = slot.ammo;
+    fighter.reserve = slot.reserve;
+
+    fighter.reloading = 0;
+    fighter.fireTimer = Math.max(fighter.fireTimer,.12);
+
+    updateHUD();
+
+    tone(380,.045,"square",.025,250);
+}
+
+/* =========================================================
+   SHOOTING
+========================================================= */
+
+function fireWeapon(fighter,targetAngle,fromAI=false) {
+    if (
+        !fighter.alive ||
+        fighter.reloading>0 ||
+        fighter.fireTimer>0
+    ) {
+        return;
+    }
+
+    const weapon = getWeapon(fighter.weaponName);
+
+    if (fighter.ammo<=0) {
+        if (fighter.isPlayer) {
+            showNotice("PRESS R TO RELOAD");
+        }
+
+        beginReload(fighter);
+        return;
+    }
+
+    fighter.ammo--;
+    fighter.fireTimer = weapon.rate/1000;
+    fighter.muzzle = .075;
+    fighter.recoil = 1;
+
+    const moving =
+        Math.hypot(fighter.vx,fighter.vy)>20;
+
+    const spread = weapon.spread*(
+        moving ? 0.55 : 0.30
+    );
+
+    const shots = weapon.pellets || 1;
+
+    for (let i=0;i<shots;i++) {
+        const a = targetAngle+rand(-spread,spread);
+        const effectiveRange = !fighter.isPlayer && player
+    ? Math.min(weapon.range, getWeapon(player.weaponName).range)
+    : weapon.range;
+
+const length = effectiveRange * rand(.88,1.03);
+
+        const endX = fighter.x+Math.cos(a)*length;
+        const endY = fighter.y+Math.sin(a)*length;
+
+        let nearest = null;
+        let nearestT = 1;
+
+        for (const target of [player,...bots]) {
+            if (
+                target===fighter ||
+                !target.alive ||
+                target.spawnShield>0
+            ) {
+                continue;
+            }
+
+            const dx = endX-fighter.x;
+            const dy = endY-fighter.y;
+
+            const px = target.x-fighter.x;
+            const py = target.y-fighter.y;
+
+            const len2 = dx*dx+dy*dy;
+
+            const t = clamp(
+                (px*dx+py*dy)/len2,
+                0,
+                1
+            );
+
+            const cx = fighter.x+dx*t;
+            const cy = fighter.y+dy*t;
+
+            const dist = Math.hypot(
+                target.x-cx,
+                target.y-cy
+            );
+
+            if (
+                dist<14 &&
+                t<nearestT &&
+                !lineBlocked(
+                    fighter.x,
+                    fighter.y,
+                    cx,
+                    cy
+                )
+            ) {
+                nearest = target;
+                nearestT = t;
+            }
+        }
+
+        let hitX = endX;
+        let hitY = endY;
+
+        if (nearest) {
+            hitX =
+                fighter.x+(endX-fighter.x)*nearestT;
+
+            hitY =
+                fighter.y+(endY-fighter.y)*nearestT;
+
+            const headshot = Math.random()<.13;
+            const damage = weapon.damage*(
+                headshot ? 1.8 : 1
+            );
+
+            nearest.health -= damage;
+            nearest.lastDamage = 0;
+            nearest.hitFlash = .12;
+
+            nearest.vx += Math.cos(a)*45;
+            nearest.vy += Math.sin(a)*45;
+
+            impactSound(headshot, nearest);
+
+            spawnParticles(
+                hitX,
+                hitY,
+                5,
+                headshot ? "#f6d18a" : "#d6b49b",
+                80
+            );
+
+            if (nearest.isPlayer) {
+                const marker =
+                    document.getElementById("hitmarker");
+
+                marker.textContent = headshot ? "✦" : "×";
+                marker.style.left = mouse.x+"px";
+                marker.style.top = mouse.y+"px";
+
+                marker.classList.remove("show");
+                void marker.offsetWidth;
+                marker.classList.add("show");
+            }
+
+            if (nearest.health<=0) {
+                killFighter(
+                    nearest,
+                    fighter,
+                    headshot
+                );
+            }
+        } else {
+            for (let t=.02;t<1;t+=.012) {
+                const x =
+                    fighter.x+(endX-fighter.x)*t;
+
+                const y =
+                    fighter.y+(endY-fighter.y)*t;
+
+                if (blocked(x,y,1)) {
+                    hitX = x;
+                    hitY = y;
+
+                    spawnParticles(
+                        x,
+                        y,
+                        3,
+                        "#b8a77d",
+                        55
+                    );
+
+                    break;
+                }
+            }
+        }
+
+        tracers.push({
+            x1:fighter.x+Math.cos(a)*15,
+            y1:fighter.y+Math.sin(a)*15,
+            x2:hitX,
+            y2:hitY,
+            life:.085,
+            color:fighter.isPlayer
+                ? "#ffc66d"
+                : "#f5a75e"
+        });
+    }
+
+    if (weapon.type==="Shotgun") {
+        spawnParticles(
+            fighter.x+Math.cos(targetAngle)*20,
+            fighter.y+Math.sin(targetAngle)*20,
+            8,
+            "#ffc66d",
+            110
+        );
+    }
+
+    /*
+        Shell casing effects.
+    */
+
+    if (Math.random()>.25) {
+        const side = Math.random()>.5 ? 1 : -1;
+
+        casings.push({
+            x:fighter.x-Math.cos(targetAngle)*7,
+            y:fighter.y-Math.sin(targetAngle)*7,
+            vx:Math.cos(targetAngle+side*1.5)*rand(35,90),
+            vy:Math.sin(targetAngle+side*1.5)*rand(35,90),
+            life:1,
+            spin:rand(0,6)
+        });
+    }
+
+   if (fighter.isPlayer) {
+    gunSound(weapon, 1, fighter);
+
+        if (settings.shake) {
+            camera.shake = Math.min(
+                5,
+                camera.shake+weapon.damage/35
+            );
+        }
+
+        saveActiveWeaponAmmo();
+        updateHUD();
+   } else {
+    gunSound(weapon, 0.62, fighter);
+}
+}
+
+/* =========================================================
+   PLAYER UPDATE
+========================================================= */
+
+function updatePlayer(dt) {
+    if (!player || !player.alive) return;
+
+    const weapon = getWeapon(player.weaponName);
+
+    const speed = 215*weapon.move*(
+        keys.ShiftLeft || keys.ShiftRight
+            ? 1.35
+            : 1
+    );
+
+    let dx = 0;
+    let dy = 0;
+
+    if (keys.KeyW || keys.ArrowUp) dy--;
+    if (keys.KeyS || keys.ArrowDown) dy++;
+    if (keys.KeyA || keys.ArrowLeft) dx--;
+    if (keys.KeyD || keys.ArrowRight) dx++;
+
+    const len = Math.hypot(dx,dy)||1;
+
+    dx /= len;
+    dy /= len;
+
+    player.vx = dx*speed;
+    player.vy = dy*speed;
+
+    moveFighter(
+        player,
+        dx*speed*dt,
+        dy*speed*dt
+    );
+
+    if (dx || dy) {
+        player.walk += dt*10;
+
+        const stepDelay =
+            keys.ShiftLeft || keys.ShiftRight
+                ? 260
+                : 390;
+
+        if (
+            performance.now()-lastFootstep>
+            stepDelay
+        ) {
+            footstepSound();
+            lastFootstep = performance.now();
+        }
+    }
+
+    /*
+        Mouse coordinates are screen coordinates.
+        Camera coordinates convert them into world coordinates.
+    */
+
+   const worldMouseX = mouse.x / XR47_CAMERA_ZOOM + camera.x;
+const worldMouseY = mouse.y / XR47_CAMERA_ZOOM + camera.y;
+
+    player.angle = Math.atan2(
+        worldMouseY-player.y,
+        worldMouseX-player.x
+    );
+
+    if (mouse.down) {
+        fireWeapon(player,player.angle);
+    }
+}
+
+/* =========================================================
+   BOT AI
+========================================================= */
+
+function rotateAngleTowards(current, target, maxStep) {
+    const difference = Math.atan2(
+        Math.sin(target - current),
+        Math.cos(target - current)
+    );
+
+    return current + clamp(difference, -maxStep, maxStep);
+}
+
+function updateBots(dt) {
+    for (const bot of bots) {
+        if (!bot.alive) {
+            bot.respawn -= dt;
+
+            if (bot.respawn <= 0) {
+                respawnFighter(bot);
+            }
+
+            continue;
+        }
+
+        bot.fireTimer = Math.max(
+            0,
+            bot.fireTimer - dt
+        );
+
+        const previousReload = bot.reloading;
+
+        bot.reloading = Math.max(
+            0,
+            bot.reloading - dt
+        );
+
+        if (
+            previousReload > 0 &&
+            bot.reloading === 0
+        ) {
+            completeReload(bot);
+        }
+
+        bot.muzzle = Math.max(0, bot.muzzle - dt);
+        bot.hitFlash = Math.max(0, bot.hitFlash - dt);
+        bot.recoil = Math.max(0, bot.recoil - dt * 5);
+        bot.spawnShield = Math.max(0, bot.spawnShield - dt);
+
+        bot.lastDamage += dt;
+
+        bot.aiThink -= dt;
+        bot.reaction -= dt;
+
+        const weapon = getWeapon(bot.weaponName);
+
+        /*
+            Find targets frequently enough that bots react
+            to nearby enemies instead of wandering around.
+        */
+
+        if (bot.aiThink <= 0) {
+            bot.aiThink = rand(0.16, 0.30);
+
+            const enemies = [player, ...bots].filter(f => {
+                if (
+                    f === bot ||
+                    !f.alive ||
+                    f.spawnShield > 0
+                ) {
+                    return false;
+                }
+
+                const dist = distance(bot, f);
+
+                return dist < 900;
+            });
+
+            enemies.sort(
+                (a, b) => distance(bot, a) - distance(bot, b)
+            );
+
+            let visibleTarget = null;
+
+            for (const enemy of enemies) {
+                if (
+                    !lineBlocked(
+                        bot.x,
+                        bot.y,
+                        enemy.x,
+                        enemy.y
+                    )
+                ) {
+                    visibleTarget = enemy;
+                    break;
+                }
+            }
+
+            if (visibleTarget !== bot.target) {
+                bot.target = visibleTarget;
+                bot.reaction = rand(0.12, 0.38);
+            } else if (!visibleTarget) {
+                bot.targetMemory = Math.max(
+                    0,
+                    (bot.targetMemory || 0) - 0.25
+                );
+
+                if (bot.targetMemory <= 0) {
+                    bot.target = null;
+                }
+            } else {
+                bot.targetMemory = 1.0;
+            }
+
+            if (!bot.target) {
+                bot.targetX = rand(
+                    80,
+                    currentMap.width - 80
+                );
+
+                bot.targetY = rand(
+                    80,
+                    currentMap.height - 80
+                );
+            }
+        }
+
+        let moveX = 0;
+        let moveY = 0;
+
+        if (
+            bot.target &&
+            bot.target.alive
+        ) {
+            const target = bot.target;
+
+            const dist = distance(bot, target);
+            const targetAngle = angleTo(bot, target);
+
+            /*
+                Weapon-specific preferred distance.
+                Bots advance when too far away.
+
+                When too close, they strafe instead of
+                running directly backward.
+            */
+
+            let idealDistance = 300;
+
+            if (weapon.type === "Shotgun") {
+                idealDistance = 145;
+            } else if (weapon.type === "SMG") {
+                idealDistance = 220;
+            } else if (weapon.type === "Sniper Rifle") {
+                idealDistance = 490;
+            } else if (weapon.type === "Pistol") {
+                idealDistance = 250;
+            } else if (weapon.type === "LMG") {
+                idealDistance = 340;
+            }
+
+            if (dist > idealDistance + 35) {
+                moveX += Math.cos(targetAngle);
+                moveY += Math.sin(targetAngle);
+            } else if (dist < idealDistance - 65) {
+                /*
+                    No retreat.
+                    The bot shifts sideways to avoid standing
+                    directly on top of its opponent.
+                */
+
+                moveX += Math.cos(targetAngle + Math.PI / 2) * bot.strafe;
+                moveY += Math.sin(targetAngle + Math.PI / 2) * bot.strafe;
+            }
+
+            /*
+                Combat strafing. Bots should not stand still
+                while shooting.
+            */
+
+            moveX +=
+                Math.cos(targetAngle + Math.PI / 2) *
+                bot.strafe * 0.48;
+
+            moveY +=
+                Math.sin(targetAngle + Math.PI / 2) *
+                bot.strafe * 0.48;
+
+            if (Math.random() < 0.012) {
+                bot.strafe *= -1;
+            }
+
+            /*
+                If an obstacle blocks the target, move toward
+                the target's last known position and try to
+                get around the obstruction.
+            */
+
+            const hasLineOfSight = !lineBlocked(
+                bot.x,
+                bot.y,
+                target.x,
+                target.y
+            );
+
+            if (!hasLineOfSight) {
+                bot.targetX = target.x;
+                bot.targetY = target.y;
+                bot.targetMemory = 1.0;
+            }
+
+            /*
+                Continuous firing.
+
+                fireWeapon already enforces the weapon's
+                actual fire rate. No extra random chance is
+                needed here.
+            */
+
+// Bots must physically turn toward their targets.
+const turnSpeed =
+    weapon.type === "Shotgun" ? 1.7 :
+    weapon.type === "Sniper Rifle" ? 1.2 :
+    weapon.type === "SMG" ? 2.5 :
+    2.0;
+
+bot.angle = rotateAngleTowards(
+    bot.angle,
+    targetAngle,
+    turnSpeed * dt
+);
+
+// Calculate how far the bot still needs to turn.
+const aimDifference = Math.abs(Math.atan2(
+    Math.sin(targetAngle - bot.angle),
+    Math.cos(targetAngle - bot.angle)
+));
+
+const isAimed = aimDifference < (
+    weapon.type === "Shotgun" ? 0.16 : 0.10
+);
+
+// Only fire when sufficiently aimed and within range.
+if (
+    bot.reaction <= 0 &&
+    hasLineOfSight &&
+    isAimed &&
+    dist < Math.min(
+        weapon.range,
+        getWeapon(player.weaponName).range
+    ) * 0.92 &&
+    bot.reloading <= 0 &&
+    bot.ammo > 0
+) {
+    const distancePenalty = clamp(
+        dist / 1000,
+        0.12,
+        0.85
+    );
+
+    const skillPenalty =
+        (1 - bot.botSkill) * 0.10;
+
+    const movementPenalty =
+        Math.hypot(bot.vx, bot.vy) > 30 ? 0.04 : 0;
+
+    const error =
+        bot.aimError +
+        distancePenalty * 0.10 +
+        skillPenalty +
+        movementPenalty;
+
+    const firingAngle =
+        bot.angle + rand(-error, error);
+
+    fireWeapon(
+        bot,
+        firingAngle,
+        true
+    );
+}
+        } else {
+            /*
+                No visible target: patrol toward a new
+                position instead of randomly reversing.
+            */
+
+            const dx = bot.targetX - bot.x;
+            const dy = bot.targetY - bot.y;
+
+            const dist = Math.hypot(dx, dy);
+
+            if (dist > 35) {
+                moveX = dx / dist;
+                moveY = dy / dist;
+
+                bot.angle = rotateAngleTowards(
+    bot.angle,
+    Math.atan2(dy, dx),
+    1.8 * dt
+);
+            } else {
+                bot.aiThink = 0;
+            }
+        }
+
+        /*
+            Normalize movement while retaining zero movement
+            when the bot is already in a good position.
+        */
+
+        const len = Math.hypot(moveX, moveY);
+
+        if (len > 0.01) {
+            moveX /= len;
+            moveY /= len;
+        }
+
+        const speed = 145;
+
+        const oldX = bot.x;
+        const oldY = bot.y;
+
+        moveFighter(
+            bot,
+            moveX * speed * dt,
+            moveY * speed * dt
+        );
+
+        /*
+            If movement is blocked, try the opposite strafe
+            direction rather than repeatedly pushing into a wall.
+        */
+
+        if (
+            Math.abs(bot.x - oldX) < 0.01 &&
+            Math.abs(bot.y - oldY) < 0.01 &&
+            len > 0.01
+        ) {
+            bot.strafe *= -1;
+
+            moveFighter(
+                bot,
+                -moveY * speed * dt,
+                moveX * speed * dt
+            );
+        }
+
+        bot.vx = (bot.x - oldX) / Math.max(dt, 0.001);
+        bot.vy = (bot.y - oldY) / Math.max(dt, 0.001);
+
+        bot.walk += dt * 8;
+
+        if (
+            bot.ammo <= 0 &&
+            bot.reloading <= 0
+        ) {
+            beginReload(bot);
+        }
+    }
+}
+
+/* =========================================================
+   GAME UPDATE
+========================================================= */
+
+function update(dt) {
+    if (gameState!=="playing" || !match) return;
+
+    match.elapsed += dt;
+
+    if (settings.duration>0) {
+        match.time -= dt;
+
+        if (match.time<=0) {
+            match.time = 0;
+            finishMatch();
+            return;
+        }
+    }
+
+    if (player) {
+        player.fireTimer = Math.max(
+            0,
+            player.fireTimer-dt
+        );
+
+        player.muzzle = Math.max(
+            0,
+            player.muzzle-dt
+        );
+
+        player.hitFlash = Math.max(
+            0,
+            player.hitFlash-dt
+        );
+
+        player.recoil = Math.max(
+            0,
+            player.recoil-dt*5
+        );
+
+        player.spawnShield = Math.max(
+            0,
+            player.spawnShield-dt
+        );
+
+        player.lastDamage += dt;
+
+        if (player.reloading>0) {
+            player.reloading -= dt;
+
+            if (player.reloading<=0) {
+                completeReload(player);
+            }
+        }
+
+        if (!player.alive) {
+            player.respawn -= dt;
+
+            if (player.respawn<=0) {
+                respawnFighter(player);
+                showNotice("BACK IN ACTION");
+            }
+        } else {
+            updatePlayer(dt);
+        }
+    }
+
+    updateBots(dt);
+
+    for (const p of particles) {
+        p.x += p.vx*dt;
+        p.y += p.vy*dt;
+
+        p.vx *= Math.pow(.05,dt);
+        p.vy *= Math.pow(.05,dt);
+
+        p.life -= dt;
+    }
+
+    particles = particles.filter(
+        p => p.life>0
+    );
+
+    for (const t of tracers) {
+        t.life -= dt;
+    }
+
+    tracers = tracers.filter(
+        t => t.life>0
+    );
+
+    for (const c of casings) {
+        c.x += c.vx*dt;
+        c.y += c.vy*dt;
+
+        c.vx *= Math.pow(.08,dt);
+        c.vy *= Math.pow(.08,dt);
+
+        c.life -= dt;
+        c.spin += dt*12;
+    }
+
+    casings = casings.filter(
+        c => c.life>0
+    );
+
+    for (const d of decals) {
+        d.life -= dt;
+    }
+
+    decals = decals.filter(
+        d => d.life>0
+    );
+
+  // PLAYER-FOCUSED ZOOM CAMERA
+if (player && currentMap) {
+    const zoom = XR47_CAMERA_ZOOM;
+
+    const viewWidth = W / zoom;
+    const viewHeight = H / zoom;
+
+    const maxX = Math.max(0, currentMap.width - viewWidth);
+    const maxY = Math.max(0, currentMap.height - viewHeight);
+
+    const targetX = clamp(
+        player.x - viewWidth / 2,
+        0,
+        maxX
+    );
+
+    const targetY = clamp(
+        player.y - viewHeight / 2,
+        0,
+        maxY
+    );
+
+    if (!camera.followInitialized) {
+        camera.x = targetX;
+        camera.y = targetY;
+        camera.followInitialized = true;
+    } else {
+        const smooth = 1 - Math.exp(-dt * 12);
+
+        camera.x += (targetX - camera.x) * smooth;
+        camera.y += (targetY - camera.y) * smooth;
+    }
+}
+}
+
+/* =========================================================
+   WORLD RENDERING
+========================================================= */
+
+function drawGround() {
+    ctx.fillStyle = currentMap.ground;
+
+    ctx.fillRect(
+        0,
+        0,
+        currentMap.width,
+        currentMap.height
+    );
+
+    ctx.save();
+
+    ctx.strokeStyle = "rgba(20,25,20,.075)";
+    ctx.lineWidth = 1;
+
+    for (let x=0;x<currentMap.width;x+=64) {
+        ctx.beginPath();
+        ctx.moveTo(x,0);
+        ctx.lineTo(x,currentMap.height);
+        ctx.stroke();
+    }
+
+    for (let y=0;y<currentMap.height;y+=64) {
+        ctx.beginPath();
+        ctx.moveTo(0,y);
+        ctx.lineTo(currentMap.width,y);
+        ctx.stroke();
+    }
+
+    ctx.fillStyle = "rgba(25,30,23,.12)";
+
+    for (let i=0;i<220;i++) {
+        const x = (i*173)%currentMap.width;
+        const y = (i*293)%currentMap.height;
+
+        ctx.beginPath();
+        ctx.arc(
+            x,
+            y,
+            (i%4)+1,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+    }
+
+    for (let i=0;i<35;i++) {
+        const x = (i*311+100)%currentMap.width;
+        const y = (i*197+70)%currentMap.height;
+
+        ctx.fillStyle = "rgba(35,38,30,.10)";
+        ctx.fillRect(
+            x,
+            y,
+            24+(i%5)*7,
+            2+(i%3)
+        );
+    }
+
+    ctx.restore();
+
+    ctx.fillStyle = "#292f29";
+
+    ctx.fillRect(0,0,currentMap.width,15);
+
+    ctx.fillRect(
+        0,
+        currentMap.height-15,
+        currentMap.width,
+        15
+    );
+
+    ctx.fillRect(0,0,15,currentMap.height);
+
+    ctx.fillRect(
+        currentMap.width-15,
+        0,
+        15,
+        currentMap.height
+    );
+
+    ctx.strokeStyle = "rgba(225,220,185,.08)";
+    ctx.lineWidth = 2;
+
+    ctx.strokeRect(
+        15,
+        15,
+        currentMap.width-30,
+        currentMap.height-30
+    );
+}
+
+function drawBlocks() {
+    for (const b of currentMap.blocks) {
+        const [x,y,w,h] = b;
+
+        ctx.fillStyle = "#282f2b";
+        ctx.fillRect(x+8,y+10,w,h);
+
+        ctx.fillStyle = currentMap.accent;
+        ctx.fillRect(x,y,w,h);
+
+        ctx.fillStyle = "rgba(255,255,255,.09)";
+        ctx.fillRect(x,y,w,5);
+        ctx.fillRect(x,y,5,h);
+
+        ctx.fillStyle = "rgba(0,0,0,.22)";
+        ctx.fillRect(x+w-6,y,6,h);
+        ctx.fillRect(x,y+h-6,w,6);
+
+        ctx.strokeStyle = "rgba(10,15,11,.5)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x,y,w,h);
+
+        ctx.fillStyle = "rgba(22,29,24,.42)";
+
+        if (w>h*1.3) {
+            ctx.fillRect(x+w*.25,y+h*.35,w*.5,5);
+            ctx.fillRect(x+w*.25,y+h*.65,w*.5,5);
+        } else {
+            ctx.fillRect(x+w*.35,y+h*.25,5,h*.5);
+            ctx.fillRect(x+w*.65,y+h*.25,5,h*.5);
+        }
+
+        ctx.fillStyle = "rgba(205,194,155,.10)";
+        ctx.fillRect(
+            x+8,
+            y+8,
+            Math.max(0,w-16),
+            2
+        );
+
+        ctx.fillStyle = "rgba(15,20,16,.28)";
+
+        for (let i=0;i<Math.floor(w/45);i++) {
+            ctx.fillRect(
+                x+18+i*42,
+                y+h-14,
+                24,
+                3
+            );
+        }
+    }
+}
+
+function drawDecals() {
+    for (const d of decals) {
+        ctx.globalAlpha = clamp(d.life/20,0,.25);
+        ctx.fillStyle = "#261e1a";
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            d.x,
+            d.y,
+            d.r,
+            d.r*.65,
+            0,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+/* =========================================================
+   WEAPON AND SOLDIER DRAWING
+========================================================= */
+
+function drawWeapon(fighter) {
+    const weapon = getWeapon(fighter.weaponName);
+
+    ctx.save();
+
+    ctx.translate(fighter.x,fighter.y);
+    ctx.rotate(fighter.angle);
+
+    const recoil = fighter.recoil*3;
+
+    const length =
+        weapon.type==="Sniper Rifle"
+            ? 34
+            : weapon.type==="Shotgun"
+                ? 29
+                : 25;
+
+    const thick =
+        weapon.group==="secondary"
+            ? 5
+            : 7;
+
+    ctx.fillStyle = "#101510";
+
+    ctx.fillRect(
+        5-recoil,
+        -thick/2,
+        length,
+        thick
+    );
+
+    ctx.fillStyle = "#303a31";
+
+    ctx.fillRect(
+        8-recoil,
+        -thick/2+1,
+        length-7,
+        thick-2
+    );
+
+    ctx.fillStyle = weapon.color;
+
+    ctx.fillRect(
+        10-recoil,
+        -thick/2+2,
+        length-12,
+        thick-4
+    );
+
+    ctx.fillStyle = "#151a16";
+
+    ctx.fillRect(length-2-recoil,-2,9,4);
+    ctx.fillRect(11,-thick/2-3,7,3);
+    ctx.fillRect(13,thick/2-1,5,7);
+
+    if (weapon.type==="Sniper Rifle") {
+        ctx.fillStyle = "#161c17";
+        ctx.fillRect(12,-5,8,3);
+        ctx.fillRect(15,-7,3,2);
+    }
+
+    if (fighter.muzzle>0) {
+        ctx.fillStyle = "#ffb84f";
+
+        ctx.beginPath();
+        ctx.moveTo(length+5-recoil,0);
+        ctx.lineTo(length+20-recoil,-7);
+        ctx.lineTo(length+14-recoil,0);
+        ctx.lineTo(length+20-recoil,7);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#fff0b0";
+
+        ctx.beginPath();
+        ctx.arc(length+7-recoil,0,3,0,Math.PI*2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+const XR47_WEAPON_SHAPES = {
+    "M4A1": {
+        receiver: 25, barrel: 20, thickness: 7,
+        stock: 13, magazine: "straight", grip: true,
+        sight: "rail", color: "#8d9b7c"
+    },
+
+    "AK-74": {
+        receiver: 23, barrel: 17, thickness: 8,
+        stock: 12, magazine: "curved", grip: true,
+        sight: "iron", color: "#9b805e"
+    },
+
+    "SCAR-L": {
+        receiver: 27, barrel: 19, thickness: 7,
+        stock: 16, magazine: "angled", grip: true,
+        sight: "optic", color: "#a2a18a"
+    },
+
+    "FAMAS": {
+        receiver: 29, barrel: 13, thickness: 8,
+        stock: 9, magazine: "bullpup", grip: true,
+        sight: "carry", color: "#84917b"
+    },
+
+    "MP5": {
+        receiver: 23, barrel: 10, thickness: 7,
+        stock: 14, magazine: "smg", grip: true,
+        sight: "iron", color: "#89958a"
+    },
+
+    "UMP45": {
+        receiver: 25, barrel: 11, thickness: 9,
+        stock: 14, magazine: "box", grip: true,
+        sight: "rail", color: "#788579"
+    },
+
+    "P90": {
+        receiver: 30, barrel: 9, thickness: 10,
+        stock: 5, magazine: "top", grip: true,
+        sight: "optic", color: "#929b87"
+    },
+
+    "Vector": {
+        receiver: 24, barrel: 9, thickness: 8,
+        stock: 10, magazine: "angled", grip: true,
+        sight: "optic", color: "#7e8b7d"
+    },
+
+    "Remington 870": {
+        receiver: 24, barrel: 19, thickness: 8,
+        stock: 16, magazine: "tube", grip: true,
+        sight: "bead", pump: true, color: "#947957"
+    },
+
+    "SPAS-12": {
+        receiver: 27, barrel: 17, thickness: 9,
+        stock: 13, magazine: "tube", grip: true,
+        sight: "iron", pump: true, color: "#969785"
+    },
+
+    "Double Barrel": {
+        receiver: 20, barrel: 17, thickness: 9,
+        stock: 12, magazine: "none", grip: true,
+        sight: "bead", doubleBarrel: true,
+        color: "#a18a69"
+    },
+
+    "AWP": {
+        receiver: 31, barrel: 29, thickness: 7,
+        stock: 19, magazine: "sniper", grip: true,
+        sight: "scope", bipod: true, color: "#718675"
+    },
+
+    "Dragunov": {
+        receiver: 28, barrel: 23, thickness: 7,
+        stock: 16, magazine: "curved", grip: true,
+        sight: "scope", color: "#9b9271"
+    },
+
+    "M24": {
+        receiver: 28, barrel: 28, thickness: 6,
+        stock: 20, magazine: "sniper", grip: true,
+        sight: "scope", bipod: true, color: "#8b927a"
+    },
+
+    "M249": {
+        receiver: 34, barrel: 22, thickness: 9,
+        stock: 14, magazine: "box", grip: true,
+        sight: "rail", bipod: true, color: "#727e6b"
+    },
+
+    "RPK": {
+        receiver: 29, barrel: 23, thickness: 8,
+        stock: 16, magazine: "curved", grip: true,
+        sight: "iron", bipod: true, color: "#92896d"
+    },
+
+    "Glock 17": {
+        receiver: 18, barrel: 8, thickness: 5,
+        stock: 0, magazine: "pistol", grip: true,
+        sight: "iron", color: "#818b80"
+    },
+
+    "USP": {
+        receiver: 19, barrel: 9, thickness: 5,
+        stock: 0, magazine: "pistol", grip: true,
+        sight: "iron", color: "#8b9185"
+    },
+
+    "Desert Eagle": {
+        receiver: 22, barrel: 12, thickness: 7,
+        stock: 0, magazine: "pistol", grip: true,
+        sight: "iron", color: "#a99469"
+    },
+
+    "M1911": {
+        receiver: 17, barrel: 8, thickness: 5,
+        stock: 0, magazine: "pistol", grip: true,
+        sight: "iron", color: "#8d8e7d"
+    }
+};
+
+function drawWeapon(fighter) {
+    const weapon = getWeapon(fighter.weaponName);
+
+    const shape = XR47_WEAPON_SHAPES[weapon.name];
+
+    if (!shape) return;
+
+    ctx.save();
+
+    ctx.translate(fighter.x, fighter.y);
+    ctx.rotate(fighter.angle);
+
+    const recoil = fighter.recoil * 3;
+
+    const rx = -2 - recoil;
+    const ry = -shape.thickness / 2;
+
+    const stockEnd = -shape.stock;
+    const barrelStart = shape.receiver - 2;
+    const barrelEnd = barrelStart + shape.barrel;
+
+    /*
+        Stock
+    */
+
+    if (shape.stock > 0) {
+        ctx.fillStyle = "#20271f";
+
+        ctx.fillRect(
+            stockEnd,
+            -shape.thickness / 2 + 1,
+            shape.stock + 4,
+            shape.thickness - 2
+        );
+
+        ctx.fillStyle = "#505b43";
+
+        ctx.fillRect(
+            stockEnd + 2,
+            -shape.thickness / 2 + 2,
+            Math.max(3, shape.stock - 2),
+            shape.thickness - 4
+        );
+
+        if (weapon.name === "SCAR-L") {
+            ctx.fillStyle = "#252d25";
+
+            ctx.fillRect(
+                stockEnd + 3,
+                -shape.thickness / 2 - 3,
+                4,
+                shape.thickness + 6
+            );
+        }
+
+        if (weapon.name === "AWP" || weapon.name === "M24") {
+            ctx.fillStyle = "#343d30";
+
+            ctx.fillRect(
+                stockEnd + 2,
+                -shape.thickness / 2 - 2,
+                shape.stock - 3,
+                3
+            );
+        }
+    }
+
+    /*
+        Main receiver
+    */
+
+    ctx.fillStyle = "#141a16";
+
+    ctx.fillRect(
+        rx,
+        ry,
+        shape.receiver + 4,
+        shape.thickness
+    );
+
+    ctx.fillStyle = shape.color;
+
+    ctx.fillRect(
+        rx + 2,
+        ry + 1,
+        shape.receiver,
+        shape.thickness - 2
+    );
+
+    ctx.fillStyle = "rgba(255,255,255,.16)";
+
+    ctx.fillRect(
+        rx + 4,
+        ry + 1,
+        shape.receiver - 7,
+        1
+    );
+
+    /*
+        Barrel
+    */
+
+    ctx.fillStyle = "#171d19";
+
+    ctx.fillRect(
+        barrelStart,
+        -2,
+        shape.barrel + 5,
+        4
+    );
+
+    ctx.fillStyle = "#485044";
+
+    ctx.fillRect(
+        barrelStart + 2,
+        -1,
+        shape.barrel,
+        2
+    );
+
+    /*
+        Muzzle and flash suppressor
+    */
+
+    ctx.fillStyle = "#111713";
+
+    ctx.fillRect(
+        barrelEnd - 1,
+        -3,
+        5,
+        6
+    );
+
+    ctx.fillStyle = "#596052";
+
+    ctx.fillRect(
+        barrelEnd,
+        -2,
+        3,
+        4
+    );
+
+    /*
+        Magazine silhouettes
+    */
+
+    ctx.fillStyle = "#171d18";
+
+    if (shape.magazine === "straight") {
+        ctx.beginPath();
+        ctx.moveTo(9, shape.thickness / 2 - 1);
+        ctx.lineTo(17, shape.thickness / 2 - 1);
+        ctx.lineTo(19, 15);
+        ctx.lineTo(8, 15);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#465044";
+        ctx.fillRect(10, 6, 7, 7);
+    }
+
+    if (shape.magazine === "curved") {
+        ctx.beginPath();
+        ctx.moveTo(8, shape.thickness / 2 - 1);
+        ctx.lineTo(17, shape.thickness / 2 - 1);
+        ctx.lineTo(22, 10);
+        ctx.lineTo(19, 18);
+        ctx.lineTo(11, 15);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = "#71664d";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(12, 8);
+        ctx.lineTo(18, 15);
+        ctx.stroke();
+    }
+
+    if (shape.magazine === "angled") {
+        ctx.beginPath();
+        ctx.moveTo(10, shape.thickness / 2 - 1);
+        ctx.lineTo(18, shape.thickness / 2 - 1);
+        ctx.lineTo(22, 15);
+        ctx.lineTo(12, 13);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    if (shape.magazine === "smg") {
+        ctx.fillRect(
+            9,
+            shape.thickness / 2 - 1,
+            6,
+            14
+        );
+
+        ctx.fillStyle = "#566052";
+        ctx.fillRect(10, 7, 4, 8);
+    }
+
+    if (shape.magazine === "box") {
+        ctx.fillRect(
+            9,
+            shape.thickness / 2 - 1,
+            12,
+            11
+        );
+
+        ctx.fillStyle = "#505a49";
+        ctx.fillRect(11, 7, 8, 3);
+    }
+
+    if (shape.magazine === "top") {
+        ctx.fillRect(
+            1,
+            -shape.thickness / 2 - 5,
+            23,
+            5
+        );
+
+        ctx.fillStyle = "#68725e";
+        ctx.fillRect(4, -shape.thickness / 2 - 4, 17, 2);
+    }
+
+    if (shape.magazine === "tube") {
+        ctx.fillStyle = "#252d26";
+
+        ctx.fillRect(
+            5,
+            shape.thickness / 2 + 1,
+            shape.receiver - 1,
+            3
+        );
+
+        ctx.fillStyle = "#65705c";
+        ctx.fillRect(7, shape.thickness / 2 + 1, shape.receiver - 5, 1);
+    }
+
+    if (shape.magazine === "sniper") {
+        ctx.fillRect(
+            8,
+            shape.thickness / 2 - 1,
+            9,
+            9
+        );
+    }
+
+    if (shape.magazine === "pistol") {
+        ctx.fillRect(
+            5,
+            shape.thickness / 2 - 1,
+            6,
+            10
+        );
+
+        ctx.fillStyle = "#596052";
+        ctx.fillRect(6, 7, 4, 5);
+    }
+
+    /*
+        Double-barrel shotgun
+    */
+
+    if (shape.doubleBarrel) {
+        ctx.fillStyle = "#171d18";
+
+        ctx.fillRect(
+            barrelStart,
+            -4,
+            shape.barrel + 5,
+            3
+        );
+
+        ctx.fillRect(
+            barrelStart,
+            2,
+            shape.barrel + 5,
+            3
+        );
+
+        ctx.fillStyle = "#6a6c5c";
+
+        ctx.fillRect(
+            barrelStart + 2,
+            -3,
+            shape.barrel,
+            1
+        );
+
+        ctx.fillRect(
+            barrelStart + 2,
+            3,
+            shape.barrel,
+            1
+        );
+    }
+
+    /*
+        Pump-action fore-end
+    */
+
+    if (shape.pump) {
+        ctx.fillStyle = "#343c30";
+
+        ctx.fillRect(
+            7,
+            -shape.thickness / 2 - 2,
+            11,
+            shape.thickness + 4
+        );
+
+        ctx.fillStyle = "#6b604b";
+
+        ctx.fillRect(
+            9,
+            -shape.thickness / 2 - 1,
+            7,
+            shape.thickness + 2
+        );
+
+        ctx.fillStyle = "#171d18";
+        ctx.fillRect(8, -shape.thickness / 2 - 3, 10, 1);
+        ctx.fillRect(8, shape.thickness / 2 + 2, 10, 1);
+    }
+
+    /*
+        Pistol grip and trigger guard
+    */
+
+    if (shape.grip) {
+        ctx.fillStyle = "#171d18";
+
+        ctx.fillRect(
+            2,
+            shape.thickness / 2 - 1,
+            5,
+            9
+        );
+
+        ctx.fillStyle = "#414a3c";
+
+        ctx.fillRect(
+            3,
+            shape.thickness / 2,
+            3,
+            7
+        );
+
+        ctx.strokeStyle = "#141a15";
+        ctx.lineWidth = 1.5;
+
+        ctx.beginPath();
+        ctx.moveTo(7, 2);
+        ctx.lineTo(12, 2);
+        ctx.lineTo(12, 6);
+        ctx.stroke();
+    }
+
+    /*
+        Sights and optics
+    */
+
+    if (shape.sight === "iron") {
+        ctx.fillStyle = "#151b16";
+        ctx.fillRect(4, -shape.thickness / 2 - 3, 3, 3);
+        ctx.fillRect(barrelStart - 3, -shape.thickness / 2 - 3, 3, 3);
+    }
+
+    if (shape.sight === "rail") {
+        ctx.fillStyle = "#1b211c";
+        ctx.fillRect(3, -shape.thickness / 2 - 3, 19, 2);
+
+        ctx.fillStyle = "#66715e";
+        ctx.fillRect(8, -shape.thickness / 2 - 5, 8, 2);
+    }
+
+    if (shape.sight === "optic") {
+        ctx.fillStyle = "#171d18";
+        ctx.fillRect(8, -shape.thickness / 2 - 8, 11, 6);
+
+        ctx.fillStyle = "#6e8170";
+        ctx.fillRect(10, -shape.thickness / 2 - 7, 7, 3);
+    }
+
+    if (shape.sight === "scope") {
+        ctx.fillStyle = "#151b17";
+        ctx.fillRect(7, -shape.thickness / 2 - 7, 19, 5);
+
+        ctx.fillStyle = "#46584a";
+        ctx.fillRect(10, -shape.thickness / 2 - 6, 13, 3);
+
+        ctx.fillStyle = "#151b17";
+        ctx.fillRect(5, -shape.thickness / 2 - 9, 3, 9);
+        ctx.fillRect(24, -shape.thickness / 2 - 9, 3, 9);
+    }
+
+    if (shape.sight === "carry") {
+        ctx.fillStyle = "#222a22";
+        ctx.fillRect(2, -shape.thickness / 2 - 8, 22, 4);
+
+        ctx.fillRect(4, -shape.thickness / 2 - 8, 3, 8);
+        ctx.fillRect(20, -shape.thickness / 2 - 8, 3, 8);
+    }
+
+    if (shape.sight === "bead") {
+        ctx.fillStyle = "#c1bda0";
+
+        ctx.beginPath();
+        ctx.arc(barrelEnd - 2, -3, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    /*
+        Bipod legs on support weapons and sniper rifles
+    */
+
+    if (shape.bipod) {
+        ctx.strokeStyle = "#252d26";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(barrelStart + 2, 3);
+        ctx.lineTo(barrelStart + 7, 12);
+        ctx.moveTo(barrelStart + 13, 3);
+        ctx.lineTo(barrelStart + 8, 12);
+        ctx.stroke();
+    }
+
+    /*
+        Weapon-specific details
+    */
+
+    if (weapon.name === "AK-74") {
+        ctx.fillStyle = "#8b704e";
+        ctx.fillRect(0, -shape.thickness / 2 - 1, 9, 3);
+    }
+
+    if (weapon.name === "Desert Eagle") {
+        ctx.fillStyle = "#b8a47d";
+        ctx.fillRect(3, -shape.thickness / 2 + 1, 13, 2);
+    }
+
+    if (weapon.name === "FAMAS") {
+        ctx.fillStyle = "#202820";
+        ctx.fillRect(-4, -shape.thickness / 2 - 4, 13, 3);
+    }
+
+    if (weapon.name === "P90") {
+        ctx.fillStyle = "#303a30";
+        ctx.fillRect(-3, -shape.thickness / 2 - 3, 7, shape.thickness + 6);
+    }
+
+    if (weapon.name === "Vector") {
+        ctx.fillStyle = "#171d18";
+        ctx.fillRect(13, -shape.thickness / 2 - 2, 5, 3);
+    }
+
+    /*
+        Muzzle flash
+    */
+
+    if (fighter.muzzle > 0) {
+        const flashX = barrelEnd + 5;
+
+        ctx.globalAlpha = clamp(
+            fighter.muzzle / 0.075,
+            0,
+            1
+        );
+
+        ctx.fillStyle = "#ffb84f";
+
+        ctx.beginPath();
+        ctx.moveTo(flashX, 0);
+        ctx.lineTo(flashX + 13, -7);
+        ctx.lineTo(flashX + 9, 0);
+        ctx.lineTo(flashX + 13, 7);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#fff0b0";
+
+        ctx.beginPath();
+        ctx.arc(flashX + 3, 0, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+}
+
+function drawFighter(fighter) {
+    if (!fighter.alive) return;
+
+    const moving =
+        Math.hypot(fighter.vx,fighter.vy)>20;
+
+    const leg = moving
+        ? Math.sin(fighter.walk)*2.5
+        : 0;
+
+    ctx.save();
+
+    ctx.translate(fighter.x,fighter.y);
+    ctx.rotate(fighter.angle);
+
+    ctx.fillStyle = "rgba(0,0,0,.35)";
+
+    ctx.beginPath();
+    ctx.ellipse(0,5,19,12,0,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "#111711";
+    ctx.fillRect(-13,-7+leg,8,6);
+    ctx.fillRect(-13,3-leg,8,6);
+
+    ctx.fillStyle = "#303b2d";
+    ctx.fillRect(-11,-8+leg,12,6);
+    ctx.fillRect(-11,3-leg,12,6);
+
+    ctx.fillStyle = "#303a2e";
+    ctx.fillRect(-12,-7,8,14);
+
+    ctx.fillStyle = "#4b5840";
+    ctx.fillRect(-11,-5,6,10);
+
+    ctx.fillStyle = "#242e25";
+    ctx.fillRect(-8,-9,18,18);
+
+    ctx.fillStyle = fighter.vest;
+    ctx.fillRect(-6,-8,15,16);
+
+    ctx.fillStyle = "#303b30";
+    ctx.fillRect(-5,-6,12,3);
+    ctx.fillRect(-5,-1,12,3);
+    ctx.fillRect(-5,4,12,2);
+
+    ctx.fillStyle = "#9a966d";
+    ctx.fillRect(0,-6,3,3);
+    ctx.fillRect(0,2,3,3);
+
+    ctx.fillStyle = "#303a2e";
+    ctx.fillRect(-2,-13,12,5);
+    ctx.fillRect(-2,8,12,5);
+
+    ctx.fillStyle = "#46533e";
+    ctx.fillRect(5,-12,6,4);
+    ctx.fillRect(5,8,6,4);
+
+    ctx.fillStyle = "#20291f";
+
+    ctx.beginPath();
+    ctx.ellipse(10,0,8,7,0,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "#657052";
+
+    ctx.beginPath();
+    ctx.ellipse(11,0,6.5,6,0,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle = "#1b2520";
+    ctx.fillRect(13,-3,5,6);
+
+    ctx.fillStyle = "#a6b18c";
+    ctx.fillRect(7,-7,7,2);
+
+    ctx.fillStyle = "#151a16";
+    ctx.fillRect(-15,-7,5,5);
+    ctx.fillRect(-15,2,5,5);
+
+    ctx.restore();
+
+    drawWeapon(fighter);
+
+    if (fighter.spawnShield>0) {
+        ctx.save();
+
+        ctx.globalAlpha =
+            .25+.18*Math.sin(performance.now()*.018);
+
+        ctx.strokeStyle = "#c8edff";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.arc(
+            fighter.x,
+            fighter.y,
+            22,
+            0,
+            Math.PI*2
+        );
+
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    if (
+        fighter.isPlayer ||
+        (player && distance(fighter,player)<330)
+    ) {
+        ctx.fillStyle = "#101710";
+
+        ctx.fillRect(
+            fighter.x-18,
+            fighter.y-31,
+            36,
+            4
+        );
+
+        ctx.fillStyle = fighter.isPlayer
+            ? "#b6dc79"
+            : "#d67b65";
+
+        ctx.fillRect(
+            fighter.x-18,
+            fighter.y-31,
+            36*clamp(fighter.health/100,0,1),
+            4
+        );
+    }
+
+    if (fighter.isPlayer) {
+        ctx.fillStyle = "#d8f1ad";
+        ctx.font = "bold 12px Rajdhani";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            "YOU",
+            fighter.x,
+            fighter.y-40
+        );
+    }
+
+    if (fighter.hitFlash>0) {
+        ctx.globalAlpha = fighter.hitFlash*5;
+        ctx.fillStyle = "#fff";
+
+        ctx.beginPath();
+        ctx.arc(
+            fighter.x,
+            fighter.y,
+            17,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+}
+
+/* =========================================================
+   EFFECT DRAWING
+========================================================= */
+
+function drawEffects() {
+    for (const c of casings) {
+        ctx.save();
+
+        ctx.translate(c.x,c.y);
+        ctx.rotate(c.spin);
+        ctx.globalAlpha = clamp(c.life,0,1);
+
+        ctx.fillStyle = "#d5b66e";
+        ctx.fillRect(-2,-1,4,2);
+
+        ctx.restore();
+    }
+
+    ctx.globalAlpha = 1;
+
+    for (const p of particles) {
+        ctx.globalAlpha = clamp(p.life/.4,0,1);
+        ctx.fillStyle = p.color;
+
+        ctx.fillRect(
+            p.x,
+            p.y,
+            p.size,
+            p.size
+        );
+    }
+
+    ctx.globalAlpha = 1;
+
+    for (const t of tracers) {
+        ctx.globalAlpha = clamp(t.life/.085,0,1);
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.moveTo(t.x1,t.y1);
+        ctx.lineTo(t.x2,t.y2);
+        ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+/* =========================================================
+   MINIMAP
+========================================================= */
+
+function drawMinimap() {
+    const size = 145;
+    const x = W-size-20;
+    const y = H-size-20;
+    const scale = size/currentMap.width;
+
+    ctx.fillStyle = "rgba(10,15,11,.78)";
+    ctx.fillRect(x,y,size,size);
+
+    ctx.save();
+
+    ctx.translate(x,y);
+    ctx.scale(scale,scale);
+
+    ctx.fillStyle = "#7c8775";
+
+    for (const b of currentMap.blocks) {
+        ctx.fillRect(
+            b[0],
+            b[1],
+            b[2],
+            b[3]
+        );
+    }
+
+    for (const fighter of [player,...bots]) {
+        if (!fighter.alive) continue;
+
+        ctx.fillStyle = fighter.isPlayer
+            ? "#d7f49d"
+            : "#ee8069";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            fighter.x,
+            fighter.y,
+            fighter.isPlayer ? 13 : 9,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+    }
+
+    ctx.restore();
+
+    ctx.strokeStyle = "#ffffff36";
+    ctx.lineWidth = 1;
+
+    ctx.strokeRect(x,y,size,size);
+}
+
+/* =========================================================
+   GAME RENDER
+========================================================= */
+
+function drawGame() {
+    ctx.clearRect(0,0,W,H);
+
+    if (gameState==="menu") {
+        drawMenuBackground();
+        return;
+    }
+
+    if (!currentMap || !player) return;
+
+   const shakeX = camera.shake > 0
+    ? (Math.random() - 0.5) * camera.shake * 0.18
+    : 0;
+
+const shakeY = camera.shake > 0
+    ? (Math.random() - 0.5) * camera.shake * 0.18
+    : 0;
+
+    ctx.save();
+
+    ctx.translate(
+    -camera.x * XR47_CAMERA_ZOOM + shakeX,
+    -camera.y * XR47_CAMERA_ZOOM + shakeY
+);
+
+ctx.scale(XR47_CAMERA_ZOOM, XR47_CAMERA_ZOOM);
+
+    drawGround();
+    drawDecals();
+    drawEffects();
+    drawBlocks();
+
+    const fighters = [player,...bots].sort(
+        (a,b) => a.y-b.y
+    );
+
+    for (const fighter of fighters) {
+        drawFighter(fighter);
+    }
+
+    ctx.restore();
+
+    if (gameState==="playing") {
+        drawMinimap();
+    }
+
+    if (
+        settings.fps &&
+        gameState==="playing"
+    ) {
+        ctx.fillStyle = "#e5eee2";
+        ctx.font = "13px Rajdhani";
+        ctx.textAlign = "left";
+
+        ctx.fillText(
+            `${fpsValue} FPS`,
+            20,
+            25
+        );
+    }
+
+    if (
+        player &&
+        !player.alive &&
+        gameState==="playing"
+    ) {
+        ctx.fillStyle = "rgba(0,0,0,.35)";
+        ctx.fillRect(0,0,W,H);
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 30px Barlow Condensed";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            `RESPAWNING IN ${Math.max(0,player.respawn).toFixed(1)}`,
+            W/2,
+            H/2
+        );
+    }
+
+    if (
+        player &&
+        player.reloading>0 &&
+        gameState==="playing"
+    ) {
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 15px Rajdhani";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            "RELOADING",
+            W/2,
+            H*.68
+        );
+    }
+}
+
+/* =========================================================
+   MENU BACKGROUND
+========================================================= */
+
+function drawMenuBackground() {
+    ctx.fillStyle = "#171e18";
+    ctx.fillRect(0,0,W,H);
+
+    const grad = ctx.createLinearGradient(
+        0,
+        0,
+        W,
+        H
+    );
+
+    grad.addColorStop(0,"#354438");
+    grad.addColorStop(.55,"#202a22");
+    grad.addColorStop(1,"#101511");
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.save();
+
+    ctx.translate(W*.62,H*.55);
+
+    for (let i=0;i<8;i++) {
+        const offset = Math.sin(menuTime+i*.7)*18;
+
+        ctx.fillStyle = i%2
+            ? "#344237"
+            : "#3d4b3e";
+
+        ctx.fillRect(
+            -W*.35+i*100+offset,
+            -H*.3+i*35,
+            W*.42,
+            H*.85
+        );
+    }
+
+    for (let i=0;i<7;i++) {
+        const x =
+            -W*.4+i*110+
+            Math.sin(menuTime*1.5+i)*20;
+
+        const y = Math.cos(menuTime+i)*25;
+
+        ctx.fillStyle = "#111813";
+        ctx.fillRect(x,y,40,100);
+        ctx.fillRect(x-15,y+15,70,18);
+        ctx.fillRect(x+5,y-25,28,28);
+    }
+
+    ctx.restore();
+
+    const shade = ctx.createLinearGradient(
+        0,
+        0,
+        W,
+        0
+    );
+
+    shade.addColorStop(0,"rgba(5,9,6,.95)");
+    shade.addColorStop(.55,"rgba(5,9,6,.65)");
+    shade.addColorStop(1,"rgba(5,9,6,.18)");
+
+    ctx.fillStyle = shade;
+    ctx.fillRect(0,0,W,H);
+
+    menuTime += .012;
+}
+
+/* =========================================================
+   MAIN LOOP
+========================================================= */
+
+function frame(now) {
+    const rawDt = (now-lastFrame)/1000;
+
+    const dt = Math.min(
+        .05,
+        Math.max(0,rawDt)
+    );
+
+    lastFrame = now;
+
+    frameCount++;
+    fpsTimer += dt;
+
+    if (fpsTimer>=.5) {
+        fpsValue = Math.round(
+            frameCount/fpsTimer
+        );
+
+        frameCount = 0;
+        fpsTimer = 0;
+    }
+
+    update(dt);
+    drawGame();
+
+    requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+addEventListener("keydown",e => {
+    keys[e.code] = true;
+
+    if ([
+        "Space",
+        "ArrowUp",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowRight"
+    ].includes(e.code)) {
+        e.preventDefault();
+    }
+
+    if (e.repeat) return;
+
+    if (e.code==="Escape") {
+        if (gameState==="playing") {
+            pauseGame();
+        } else if (gameState==="paused") {
+            resumeGame();
+        }
+
+        return;
+    }
+
+    if (
+        gameState!=="playing" ||
+        !player
+    ) {
+        return;
+    }
+
+    if (e.code==="KeyR") {
+        beginReload(player);
+    }
+
+    if (e.code==="Digit1") {
+        switchWeapon(player,false);
+    }
+
+    if (e.code==="Digit2") {
+        switchWeapon(player,true);
+    }
+});
+
+addEventListener("keyup",e => {
+    keys[e.code] = false;
+});
+
+/*
+    Keep mouse aiming based on the actual cursor position.
+    No pointer lock is requested, so the cursor remains visible.
+*/
+
+canvas.addEventListener("mousemove",e => {
+    const rect = canvas.getBoundingClientRect();
+
+    mouse.x = e.clientX-rect.left;
+    mouse.y = e.clientY-rect.top;
+});
+
+canvas.addEventListener("mousedown",e => {
+    if (e.button!==0) return;
+
+    initAudio();
+
+    if (gameState==="playing") {
+        mouse.down = true;
+    }
+});
+
+window.addEventListener("mouseup", (e) => {
+    if (e.button === 0) {
+        mouse.down = false;
+    }
+});
+
+window.addEventListener("blur", () => {
+    mouse.down = false;
+});
+
+canvas.addEventListener("contextmenu",e => {
+    e.preventDefault();
+});
+
+document.addEventListener("visibilitychange",() => {
+    if (
+        document.hidden &&
+        gameState==="playing"
+    ) {
+        pauseGame();
+    }
+});
+
+/* =========================================================
+   BUTTON AUDIO
+========================================================= */
+
+document.querySelectorAll("button").forEach(button => {
+    button.addEventListener("mouseenter",() => {
+        if (audio) {
+            tone(
+                480,
+                .025,
+                "square",
+                .018,
+                360
+            );
+        }
+    });
+});
+
+/* =========================================================
+   STARTUP
+========================================================= */
+
+ensureRenderQualitySetting();
+
+saveSettingsToStorage();
+saveLoadout();
+
+/*
+    Audio initialization waits for the first user interaction.
+    The first menu click or gameplay click starts loading the
+    Hard Lines recordings automatically.
+*/
+
+if (settings.volume>0) {
+    // Audio is initialized after the first user interaction.
+}
+
+</script>
+
+<script>
+(() => {
+    "use strict";
+
+    const SIGNAL_SERVER = "https://server.rtcio.dev";
+    const ROOM_ID = "xr47-public-ffa-47f3c9e8-v1";
+    const MAX_PLAYERS = 8;
+
+    const original = {
+        startMatch,
+        updatePlayer,
+        updateBots,
+        fireWeapon,
+        beginReload,
+        switchWeapon,
+        completeReload,
+        respawnFighter,
+        killFighter,
+        finishMatch
+    };
+
+    let socket = null;
+    let online = false;
+    let isHost = false;
+    let hostId = null;
+
+    let localJoinedAt = 0;
+    let localName = "RANGER";
+
+    let peers = new Map();
+    let remotePlayers = [];
+    let offlineBots = [];
+
+    let inputTimer = null;
+    let snapshotTimer = null;
+
+    let endingFromNetwork = false;
+    let lastInput = {
+        up: false,
+        down: false,
+        left: false,
+        right: false,
+        shift: false,
+        shooting: false,
+        angle: 0
+    };
+
+    // ---------------------------------------------------------
+    // UI
+    // ---------------------------------------------------------
+
+    const status = document.createElement("div");
+
+    status.id = "xr47-online-status";
+
+    status.style.cssText = `
+        position:fixed;
+        top:14px;
+        left:50%;
+        transform:translateX(-50%);
+        z-index:99999;
+        background:rgba(12,17,15,.94);
+        border:1px solid #566c46;
+        color:#dce8d3;
+        padding:10px 18px;
+        border-radius:5px;
+        font:12px monospace;
+        letter-spacing:1px;
+        display:none;
+        pointer-events:none;
+    `;
+
+    document.body.appendChild(status);
+
+    function setStatus(message) {
+        status.textContent = "XR-47 ONLINE  /  " + message;
+        status.style.display = "block";
+    }
+
+    function hideStatus() {
+        status.style.display = "none";
+    }
+
+    function notice(message) {
+        if (typeof showNotice === "function") {
+            showNotice(message);
+        } else {
+            setStatus(message);
+        }
+    }
+
+    const menuButtons = document.querySelector(".menu-buttons");
+
+    if (menuButtons) {
+        const onlineButton = document.createElement("button");
+
+        onlineButton.className = "menu-button";
+        onlineButton.textContent = "🌐  Find online match";
+        onlineButton.style.borderColor = "#78945e";
+        onlineButton.onclick = start;
+
+        menuButtons.appendChild(onlineButton);
+    }
+
+    // ---------------------------------------------------------
+    // PLAYER MANAGEMENT
+    // ---------------------------------------------------------
+
+    function getLocalInfo() {
+    return {
+        name: window.XR47RankedActive
+            ? window.XR47RankedProfile.name
+            : localName,
+        joinedAt: localJoinedAt,
+        primary: selectedPrimary,
+        secondary: selectedSecondary
+    };
+}
+
+    function electHost() {
+        if (!socket || !socket.id) return;
+
+        const candidates = [{
+            id: socket.id,
+            joinedAt: localJoinedAt
+        }];
+
+        for (const [id, peer] of peers) {
+            candidates.push({
+                id,
+                joinedAt: peer.joinedAt
+            });
+        }
+
+        candidates.sort((a, b) => {
+            if (a.joinedAt !== b.joinedAt) {
+                return a.joinedAt - b.joinedAt;
+            }
+
+            return a.id.localeCompare(b.id);
+        });
+
+        const previousHost = hostId;
+
+        hostId = candidates[0].id;
+        isHost = hostId === socket.id;
+
+        if (previousHost !== hostId) {
+            setStatus(
+                isHost
+                    ? "YOU ARE HOST"
+                    : "HOST: " + (peers.get(hostId)?.name || "CONNECTING")
+            );
+        }
+    }
+
+    function ensureRemotePlayer(id, info = {}) {
+        let fighter = remotePlayers.find(p => p.id === id);
+
+        if (fighter) {
+            if (info.name) fighter.name = info.name;
+            return fighter;
+        }
+
+        if (!currentMap || remotePlayers.length >= MAX_PLAYERS - 1) {
+            return null;
+        }
+
+        const spawnIndex = Math.min(
+            remotePlayers.length + 1,
+            currentMap.spawns.length - 1
+        );
+
+        const primary = info.primary || selectedPrimary;
+        const secondary = info.secondary || selectedSecondary;
+
+        fighter = createFighter(
+            id,
+            true,
+            currentMap.spawns[spawnIndex],
+            primary
+        );
+
+        fighter.isPlayer = false;
+        fighter.name = info.name || "UNKNOWN";
+
+        fighter.primarySlot = {
+            name: primary,
+            ammo: getWeapon(primary).mag,
+            reserve: getWeapon(primary).reserve
+        };
+
+        fighter.secondarySlot = {
+            name: secondary,
+            ammo: getWeapon(secondary).mag,
+            reserve: getWeapon(secondary).reserve
+        };
+
+        remotePlayers.push(fighter);
+        bots = remotePlayers;
+
+        return fighter;
+    }
+
+    function removeRemotePlayer(id) {
+        remotePlayers = remotePlayers.filter(p => p.id !== id);
+        bots = remotePlayers;
+    }
+
+    function fighterState(f) {
+        return {
+            id: f.id,
+            name: f.name,
+            x: f.x,
+            y: f.y,
+            vx: f.vx,
+            vy: f.vy,
+            angle: f.angle,
+            health: f.health,
+            maxHealth: f.maxHealth,
+            alive: f.alive,
+            respawn: f.respawn,
+            spawnShield: f.spawnShield,
+            kills: f.kills,
+            deaths: f.deaths,
+            weaponName: f.weaponName,
+            ammo: f.ammo,
+            reserve: f.reserve,
+            reloading: f.reloading,
+            fireTimer: f.fireTimer,
+            muzzle: f.muzzle,
+            recoil: f.recoil,
+            hitFlash: f.hitFlash,
+            primarySlot: f.primarySlot,
+            secondarySlot: f.secondarySlot,
+            vest: f.vest
+        };
+    }
+
+    
+function applyFighterState(f, state) {
+    // Position and rotation are interpolated separately.
+    if (!f._netInitialized) {
+        f.x = state.x;
+        f.y = state.y;
+        f.angle = state.angle;
+        f._netInitialized = true;
+    }
+
+    f._netTargetX = state.x;
+    f._netTargetY = state.y;
+    f._netTargetAngle = state.angle;
+
+    const fields = [
+        "name", "vx", "vy",
+        "health", "maxHealth", "alive", "respawn",
+        "spawnShield", "kills", "deaths", "weaponName",
+        "ammo", "reserve", "reloading", "fireTimer",
+        "muzzle", "recoil", "hitFlash",
+        "primarySlot", "secondarySlot", "vest"
+    ];
+
+    for (const field of fields) {
+        if (state[field] !== undefined) {
+            f[field] = state[field];
+        }
+    }
+}
+
+
+function smoothRemotePlayers(dt) {
+    if (!online || isHost) return;
+
+    // Frame-rate-independent smoothing.
+    const blend = 1 - Math.exp(-dt * 13);
+
+    for (const f of remotePlayers) {
+        if (!f._netInitialized) continue;
+
+        f.x += (f._netTargetX - f.x) * blend;
+        f.y += (f._netTargetY - f.y) * blend;
+
+        // Rotate along the shortest angular path.
+        let difference =
+            (f._netTargetAngle - f.angle + Math.PI * 3) %
+            (Math.PI * 2) - Math.PI;
+
+        f.angle += difference * blend;
+    }
+}
+
+
+
+    // ---------------------------------------------------------
+    // HOST SNAPSHOTS
+    // ---------------------------------------------------------
+
+    function makeSnapshot() {
+        return {
+            mapIndex: MAPS.indexOf(currentMap),
+            match: match ? {
+                time: match.time,
+                elapsed: match.elapsed,
+                killLimit: match.killLimit,
+                ended: match.ended
+            } : null,
+
+            players: [
+                fighterState(player),
+                ...remotePlayers.map(fighterState)
+            ]
+        };
+    }
+
+    function sendSnapshot(targetId = null) {
+        if (!online || !isHost || !socket) return;
+
+        const snapshot = makeSnapshot();
+
+        if (targetId) {
+            socket.peer(targetId).emit("xr47:snapshot", snapshot);
+        } else {
+            for (const id of peers.keys()) {
+                socket.peer(id).emit("xr47:snapshot", snapshot);
+            }
+        }
+    }
+
+    function receiveSnapshot(state) {
+        if (!online || !state || !Array.isArray(state.players)) {
+            return;
+        }
+
+        if (Number.isInteger(state.mapIndex) &&
+            MAPS[state.mapIndex] &&
+            currentMap !== MAPS[state.mapIndex]) {
+
+            currentMap = MAPS[state.mapIndex];
+        }
+
+        if (state.match && match) {
+            match.time = state.match.time;
+            match.elapsed = state.match.elapsed;
+            match.killLimit = state.match.killLimit;
+            match.ended = state.match.ended;
+        }
+
+        const seen = new Set();
+
+        for (const incoming of state.players) {
+            seen.add(incoming.id);
+
+            if (incoming.id === socket.id) {
+                applyFighterState(player, incoming);
+                continue;
+            }
+
+            const info = peers.get(incoming.id) || {};
+            const remote = ensureRemotePlayer(incoming.id, info);
+
+            if (remote) {
+                applyFighterState(remote, incoming);
+            }
+        }
+
+        remotePlayers = remotePlayers.filter(
+            f => seen.has(f.id)
+        );
+
+        bots = remotePlayers;
+
+        updateHUD();
+    }
+
+    // ---------------------------------------------------------
+    // INPUT AND HOST SIMULATION
+    // ---------------------------------------------------------
+
+    function readInput() {
+        return {
+            up: !!(keys.KeyW || keys.ArrowUp),
+            down: !!(keys.KeyS || keys.ArrowDown),
+            left: !!(keys.KeyA || keys.ArrowLeft),
+            right: !!(keys.KeyD || keys.ArrowRight),
+            shift: !!keys.ShiftLeft || !!keys.ShiftRight,
+            shooting: !!mouse.down,
+            angle: player.angle
+        };
+    }
+
+    function sendInput() {
+        if (!online || isHost || !socket || !hostId) return;
+
+        const input = readInput();
+
+        lastInput = input;
+
+        if (hostId === socket.id) return;
+
+        socket.peer(hostId).emit("xr47:input", input);
+    }
+
+    function processRemotePlayers(dt) {
+        if (!isHost) return;
+
+        for (const fighter of remotePlayers) {
+            const input = fighter._netInput || lastInput;
+
+            fighter.fireTimer = Math.max(
+                0,
+                fighter.fireTimer - dt
+            );
+
+            fighter.muzzle = Math.max(0, fighter.muzzle - dt);
+            fighter.recoil = Math.max(0, fighter.recoil - dt * 5);
+            fighter.hitFlash = Math.max(0, fighter.hitFlash - dt);
+            fighter.spawnShield = Math.max(0, fighter.spawnShield - dt);
+
+            if (fighter.reloading > 0) {
+                fighter.reloading -= dt;
+
+                if (fighter.reloading <= 0) {
+                    original.completeReload(fighter);
+                }
+            }
+
+            if (!fighter.alive) {
+                fighter.respawn -= dt;
+
+                if (fighter.respawn <= 0) {
+                    original.respawnFighter(fighter);
+                }
+
+                continue;
+            }
+
+            let dx = 0;
+            let dy = 0;
+
+            if (input.up) dy--;
+            if (input.down) dy++;
+            if (input.left) dx--;
+            if (input.right) dx++;
+
+            const magnitude = Math.hypot(dx, dy) || 1;
+
+            dx /= magnitude;
+            dy /= magnitude;
+
+            const weapon = getWeapon(fighter.weaponName);
+
+            const speed =
+                215 *
+                weapon.move *
+                (input.shift ? 1.35 : 1);
+
+            moveFighter(
+                fighter,
+                dx * speed * dt,
+                dy * speed * dt
+            );
+
+            fighter.vx = dx * speed;
+            fighter.vy = dy * speed;
+            fighter.angle = input.angle;
+
+            if (input.shooting) {
+                original.fireWeapon(
+                    fighter,
+                    fighter.angle
+                );
+            }
+        }
+    }
+
+    // ---------------------------------------------------------
+    // PEER CONNECTIONS
+    // ---------------------------------------------------------
+
+    function attachPeer(id) {
+        if (!socket || !id || id === socket.id) return;
+
+        const peer = socket.peer(id);
+		
+		
+peer.on("xr47:host-left", data => {
+    if (id !== hostId) return;
+
+    handleHostDeparture(
+        data?.code || "XR47-HOST-UNEXPECTED"
+    );
+});
+
+
+        peer.on("xr47:hello", info => {
+            peers.set(id, {
+                name: info.name || "PLAYER",
+                joinedAt: Number(info.joinedAt) || Date.now(),
+                primary: info.primary,
+                secondary: info.secondary
+            });
+
+            electHost();
+
+            if (isHost) {
+                ensureRemotePlayer(id, peers.get(id));
+                sendSnapshot(id);
+            } else if (hostId) {
+                socket.peer(hostId).emit("xr47:request-state", {});
+            }
+        });
+
+        peer.on("xr47:request-state", () => {
+            if (isHost) sendSnapshot(id);
+        });
+
+        peer.on("xr47:input", input => {
+            if (!isHost || !input) return;
+
+            const fighter = remotePlayers.find(p => p.id === id);
+            if (!fighter) return;
+
+            fighter._netInput = {
+                up: !!input.up,
+                down: !!input.down,
+                left: !!input.left,
+                right: !!input.right,
+                shift: !!input.shift,
+                shooting: !!input.shooting,
+                angle: Number(input.angle) || 0
+            };
+        });
+
+        peer.on("xr47:action", action => {
+            if (!isHost || !action) return;
+
+            const fighter = remotePlayers.find(p => p.id === id);
+            if (!fighter) return;
+
+            if (action.type === "reload") {
+                original.beginReload(fighter);
+            }
+
+            if (action.type === "primary") {
+                original.switchWeapon(fighter, false);
+            }
+
+            if (action.type === "secondary") {
+                original.switchWeapon(fighter, true);
+            }
+        });
+
+        peer.on("xr47:snapshot", state => {
+            if (id === hostId) {
+                receiveSnapshot(state);
+            }
+        });
+
+        peer.on("xr47:kill", data => {
+            if (!data) return;
+
+            addFeed(
+                { name: data.killer },
+                { name: data.victim },
+                !!data.headshot
+            );
+        });
+
+        peer.on("xr47:end", () => {
+            if (id !== hostId) return;
+
+            endingFromNetwork = true;
+            finishMatch();
+            endingFromNetwork = false;
+        });
+
+        peer.emit("xr47:hello", getLocalInfo());
+    }
+
+    
+let departureSent = false;
+
+function notifyHostLeaving(code) {
+    if (!online || !isHost || !socket || departureSent) return;
+
+    departureSent = true;
+
+    for (const id of peers.keys()) {
+        try {
+            socket.peer(id).emit("xr47:host-left", {
+                code,
+                message: "The host has left the match."
+            });
+        } catch (error) {
+            console.warn("Could not notify peer:", id, error);
+        }
+    }
+}
+
+function handleHostDeparture(code) {
+    if (!online) return;
+
+    online = false;
+    isHost = false;
+    hostId = null;
+
+    clearInterval(inputTimer);
+    clearInterval(snapshotTimer);
+
+    const oldSocket = socket;
+    socket = null;
+
+    if (oldSocket) {
+        oldSocket.disconnect();
+    }
+
+    peers.clear();
+    remotePlayers = [];
+    bots = offlineBots.slice();
+
+    mouse.down = false;
+    gameState = "menu";
+
+    document.querySelectorAll(".screen").forEach(screen => {
+        screen.classList.remove("active");
+    });
+
+    document.getElementById("menu")?.classList.add("active");
+    document.getElementById("hud")?.classList.add("hidden");
+
+    setStatus("MATCH TERMINATED — " + code);
+
+    console.warn("[XR-47] Host departure:", code);
+}
+
+function leaveMatch() {
+    if (!online) return;
+
+    if (isHost) {
+        notifyHostLeaving("XR47-HOST-MENU-EXIT");
+
+        // Give the goodbye messages a moment to leave.
+        setTimeout(() => {
+            handleHostDeparture("XR47-HOST-MENU-EXIT");
+        }, 200);
+    } else {
+        handleHostDeparture("XR47-PLAYER-LEFT");
+    }
+}
+
+
+   
+function onPeerDisconnect(id) {
+    if (!online) return;
+
+    // No host migration: everyone exits if the host disappears.
+    if (!isHost && id === hostId) {
+        handleHostDeparture("XR47-HOST-UNEXPECTED");
+        return;
+    }
+
+    peers.delete(id);
+    removeRemotePlayer(id);
+
+    electHost();
+
+    if (isHost) {
+        sendSnapshot();
+    }
+
+    setStatus(
+        "PLAYER LEFT / " +
+        (remotePlayers.length + 1) +
+        " PLAYERS"
+    );
+}
+
+
+    // ---------------------------------------------------------
+    // CONNECT
+    // ---------------------------------------------------------
+
+    async function start() {
+        if (online) return;
+
+        if (!window.isSecureContext) {
+            alert("XR-47 multiplayer requires HTTPS. Open the GitHub Pages version.");
+            return;
+        }
+
+        if (!window.RTCPeerConnection) {
+            alert("This browser does not support WebRTC.");
+            return;
+        }
+
+        localJoinedAt = Date.now();
+
+        localName =
+            "RANGER-" +
+            Math.floor(100 + Math.random() * 900);
+
+        original.startMatch();
+
+        offlineBots = bots.slice();
+        remotePlayers = [];
+        bots = [];
+
+        online = true;
+        isHost = false;
+        hostId = null;
+        peers.clear();
+
+        setStatus("CONNECTING TO MATCHMAKING...");
+
+        try {
+            const module = await import(
+                "https://esm.sh/rtc.io@1.5.98?bundle"
+            );
+
+            const io = module.default;
+
+            socket = io(SIGNAL_SERVER, {
+                iceServers: [{
+                    urls: "stun:stun.l.google.com:19302"
+                }]
+            });
+
+            socket.on("connect", () => {
+                socket.server.emit("join-room", {
+                    roomId: window.XR47RankedActive
+    ? ROOM_ID + "-ranked"
+    : ROOM_ID,
+                    name: localName
+                });
+
+                setStatus("SEARCHING FOR PLAYERS...");
+            });
+
+            socket.on("peer-connect", ({ id }) => {
+                attachPeer(id);
+            });
+
+            socket.on("peer-disconnect", ({ id }) => {
+                onPeerDisconnect(id);
+            });
+
+            socket.on("connect_error", error => {
+                console.error("XR-47 signaling error:", error);
+                connectionFailed();
+            });
+
+            inputTimer = setInterval(sendInput, 50);
+            snapshotTimer = setInterval(() => {
+                if (isHost) sendSnapshot();
+            }, 50);
+
+        } catch (error) {
+            console.error("XR-47 multiplayer failed:", error);
+            connectionFailed();
+        }
+    }
+
+    function connectionFailed() {
+        if (socket) {
+            socket.disconnect();
+            socket = null;
+        }
+
+        online = false;
+        isHost = false;
+        hostId = null;
+
+        clearInterval(inputTimer);
+        clearInterval(snapshotTimer);
+
+        remotePlayers = [];
+        bots = offlineBots;
+
+        hideStatus();
+        notice("ONLINE CONNECTION FAILED — OFFLINE BOTS RESTORED");
+    }
+
+    // ---------------------------------------------------------
+    // HOOK INTO EXISTING GAME
+    // ---------------------------------------------------------
+
+    updatePlayer = function(dt) {
+        original.updatePlayer(dt);
+
+        if (online && !isHost) {
+            lastInput = readInput();
+        }
+    };
+
+    updateBots = function(dt) {
+        if (!online) {
+            return original.updateBots(dt);
+        }
+
+        if (isHost) {
+            processRemotePlayers(dt);
+        }
+    };
+
+    fireWeapon = function(fighter, angle, fromAI = false) {
+        if (online && !isHost && fighter === player) {
+            return;
+        }
+
+        return original.fireWeapon(
+            fighter,
+            angle,
+            fromAI
+        );
+    };
+
+    beginReload = function(fighter) {
+        const result = original.beginReload(fighter);
+
+        if (online && !isHost && fighter === player && hostId) {
+            socket.peer(hostId).emit("xr47:action", {
+                type: "reload"
+            });
+        }
+
+        return result;
+    };
+
+    switchWeapon = function(fighter, secondary = false) {
+        const result = original.switchWeapon(
+            fighter,
+            secondary
+        );
+
+        if (online && !isHost && fighter === player && hostId) {
+            socket.peer(hostId).emit("xr47:action", {
+                type: secondary ? "secondary" : "primary"
+            });
+        }
+
+        return result;
+    };
+
+    killFighter = function(victim, killer, headshot = false) {
+        const result = original.killFighter(
+            victim,
+            killer,
+            headshot
+        );
+
+        if (online && isHost && socket) {
+            socket.emit("xr47:kill", {
+                killer: killer?.name || "UNKNOWN",
+                victim: victim?.name || "UNKNOWN",
+                headshot: !!headshot
+            });
+        }
+
+        return result;
+    };
+
+    finishMatch = function() {
+        if (online && !isHost && !endingFromNetwork) {
+            return;
+        }
+
+        const result = original.finishMatch();
+
+        if (online && isHost && socket && !endingFromNetwork) {
+            socket.emit("xr47:end", {});
+        }
+
+        return result;
+    };
+
+    // ---------------------------------------------------------
+    // CLEANUP
+    // ---------------------------------------------------------
+
+    
+function handlePageExit() {
+    if (!online || !isHost || departureSent) return;
+
+    // Browser closing, tab closing, navigation, or forced exit.
+    notifyHostLeaving("XR47-HOST-PAGE-CLOSED");
+}
+
+window.addEventListener("pagehide", handlePageExit);
+window.addEventListener("beforeunload", handlePageExit);
+
+
+  
+window.XR47Online = {
+    start,
+
+    leave: leaveMatch,
+
+    get connected() {
+        return online && !!socket?.connected;
+    },
+
+    get host() {
+        return isHost;
+    },
+
+    get playerCount() {
+        return remotePlayers.length + 1;
+    },
+
+    disconnect() {
+        leaveMatch();
+    }
+};
+
+
+
+const xr47OriginalUpdate = update;
+
+update = function(dt) {
+    xr47OriginalUpdate(dt);
+    smoothRemotePlayers(dt);
+};
+
+
+const xr47OriginalDrawGame = drawGame;
+
+drawGame = function() {
+    if (!online) {
+        return xr47OriginalDrawGame();
+    }
+
+    const previousBots = bots;
+
+    // Guarantee that all connected players are rendered.
+    bots = [
+        ...new Map(
+            [...(bots || []), ...remotePlayers]
+                .map(f => [f.id, f])
+        ).values()
+    ];
+
+    try {
+        xr47OriginalDrawGame();
+    } finally {
+        bots = previousBots;
+    }
+};
+
+})();
+</script>
+
+
+<script>
+(() => {
+    "use strict";
+
+    const API = "https://setget.net";
+    const LEADERBOARD_KEY = "xr47-ranked-leaderboard-v1";
+    const PLAYER_KEY_PREFIX = "xr47-ranked-player-";
+
+    const RANKS = [
+        ["Recruit", "#777E87", "shield"],
+        ["Bronze", "#A96538", "chevrons"],
+        ["Silver", "#BFC8D2", "star"],
+        ["Gold", "#E4B83E", "eagle"],
+        ["Platinum", "#72BFC5", "crest"],
+        ["Emerald", "#168653", "gem"],
+        ["Diamond", "#55BCEB", "diamond"],
+        ["Veteran", "#667D91", "wings"],
+        ["Specialist", "#3975B8", "crosshair"],
+        ["Expert", "#A3A9B2", "expert"],
+        ["Elite", "#713DB5", "angular"],
+        ["Master", "#D34B35", "laurel"],
+        ["Renowned", "#D18A35", "ornate"],
+        ["Champion", "#F2C94C", "trophy"],
+        ["Ace", "#E9E5DC", "ace"],
+        ["Prestige", "#B68A45", "engraved"],
+        ["Unmatched", "#263B55", "blades"],
+        ["Legend", "#E5E1D6", "heraldic"],
+        ["Mythic", "#B64A32", "flame"],
+        ["Legendary", "#D7B56D", "crown"]
+    ];
+
+    const DIVISIONS = ["V", "IV", "III", "II", "I"];
+
+    const STORAGE_PROFILE = "xr47_ranked_profile_v1";
+
+    function randomId() {
+        if (crypto.randomUUID) return crypto.randomUUID();
+
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+            /[xy]/g,
+            c => {
+                const r = Math.random() * 16 | 0;
+                return (c === "x" ? r : (r & 3 | 8)).toString(16);
+            }
+        );
+    }
+
+    function loadProfile() {
+        try {
+            return JSON.parse(
+                localStorage.getItem(STORAGE_PROFILE)
+            );
+        } catch {
+            return null;
+        }
+    }
+
+    let profile = loadProfile();
+
+    if (!profile || !profile.id) {
+        profile = {
+            id: randomId(),
+            name: "RANGER-" + Math.floor(100 + Math.random() * 900),
+            rating: 0,
+            wins: 0,
+            losses: 0,
+            matches: 0,
+            kills: 0,
+            deaths: 0,
+            updatedAt: Date.now()
+        };
+    }
+
+    window.XR47RankedProfile = profile;
+    window.XR47RankedActive = false;
+
+    let leaderboard = [];
+    let leaderboardAvailable = false;
+    let leaderboardDirty = false;
+    let lastProcessedMatch = null;
+
+    function saveLocal() {
+        profile.updatedAt = Date.now();
+
+        localStorage.setItem(
+            STORAGE_PROFILE,
+            JSON.stringify(profile)
+        );
+
+        window.XR47RankedProfile = profile;
+    }
+
+    function getRank(rating) {
+        const step = Math.max(
+            0,
+            Math.min(99, Math.floor(rating / 100))
+        );
+
+        const rankIndex = Math.floor(step / 5);
+        const divisionIndex = 4 - (step % 5);
+
+        return {
+            name: RANKS[rankIndex][0],
+            color: RANKS[rankIndex][1],
+            symbol: RANKS[rankIndex][2],
+            division: DIVISIONS[divisionIndex],
+            index: rankIndex
+        };
+    }
+
+    function escapeHTML(value) {
+        return String(value).replace(/[&<>"']/g, char => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[char]);
+    }
+
+    // Every rank has its own central symbol and visual treatment.
+    function makeBadge(rank, division = "V", numberOne = false) {
+        const colors = {
+            Recruit: "#777E87",
+            Bronze: "#A96538",
+            Silver: "#BFC8D2",
+            Gold: "#E4B83E",
+            Platinum: "#72BFC5",
+            Emerald: "#168653",
+            Diamond: "#55BCEB",
+            Veteran: "#667D91",
+            Specialist: "#3975B8",
+            Expert: "#A3A9B2",
+            Elite: "#713DB5",
+            Master: "#D34B35",
+            Renowned: "#D18A35",
+            Champion: "#F2C94C",
+            Ace: "#E9E5DC",
+            Prestige: "#B68A45",
+            Unmatched: "#263B55",
+            Legend: "#E5E1D6",
+            Mythic: "#B64A32",
+            Legendary: "#D7B56D"
+        };
+
+        const color = numberOne ? "#E4B83E" : colors[rank] || "#FFFFFF";
+
+        const symbols = {
+            Recruit: '<path d="M50 27 L67 35 L64 59 L50 72 L36 59 L33 35 Z"/>',
+            Bronze: '<path d="M32 37 L50 25 L68 37 L50 49 Z M32 51 L50 63 L68 51"/>',
+            Silver: '<path d="M50 25 L56 42 L74 43 L60 55 L65 73 L50 63 L35 73 L40 55 L26 43 L44 42 Z"/>',
+            Gold: '<path d="M50 25 L58 35 L72 32 L66 46 L75 57 L60 58 L50 72 L40 58 L25 57 L34 46 L28 32 L42 35 Z"/>',
+            Platinum: '<path d="M50 24 L69 39 L63 63 L50 74 L37 63 L31 39 Z M50 24 L50 74 M31 39 L69 39"/>',
+            Emerald: '<path d="M50 24 L69 39 L62 63 L50 75 L38 63 L31 39 Z M50 24 L50 75 M31 39 L69 39"/>',
+            Diamond: '<path d="M50 22 L72 42 L50 77 L28 42 Z M28 42 L72 42 M50 22 L42 42 L50 77 L58 42 Z"/>',
+            Veteran: '<path d="M50 27 L62 34 L73 31 L68 46 L77 55 L59 58 L50 73 L41 58 L23 55 L32 46 L27 31 L38 34 Z"/>',
+            Specialist: '<circle cx="50" cy="49" r="19"/><circle cx="50" cy="49" r="8"/><path d="M50 22 V38 M50 60 V76 M23 49 H39 M61 49 H77"/>',
+            Expert: '<path d="M50 22 L58 39 L77 42 L63 55 L66 75 L50 65 L34 75 L37 55 L23 42 L42 39 Z"/>',
+            Elite: '<path d="M50 22 L74 37 L68 65 L50 77 L32 65 L26 37 Z M50 31 L62 43 L50 65 L38 43 Z"/>',
+            Master: '<path d="M50 23 L69 33 L69 56 L50 76 L31 56 L31 33 Z M38 46 L46 54 L63 38"/>',
+            Renowned: '<path d="M50 20 L59 36 L78 37 L65 51 L69 70 L50 61 L31 70 L35 51 L22 37 L41 36 Z M50 32 V52"/>',
+            Champion: '<path d="M37 27 H63 V42 Q63 54 50 56 Q37 54 37 42 Z M37 33 H25 V39 Q25 51 41 51 M63 33 H75 V39 Q75 51 59 51 M50 56 V68 M39 70 H61"/>',
+            Ace: '<path d="M50 23 L58 37 L76 29 L66 48 L77 62 L57 59 L50 77 L43 59 L23 62 L34 48 L24 29 L42 37 Z"/>',
+            Prestige: '<path d="M50 21 L70 34 L70 58 L50 76 L30 58 L30 34 Z M39 42 L50 32 L61 42 L50 56 Z M39 60 H61"/>',
+            Unmatched: '<path d="M28 29 L50 49 L72 29 L65 58 L50 75 L35 58 Z M28 29 L35 58 M72 29 L65 58"/>',
+            Legend: '<path d="M50 22 L72 35 V59 L50 76 L28 59 V35 Z M50 32 L62 43 L50 64 L38 43 Z"/>',
+            Mythic: '<path d="M50 77 Q25 58 40 43 Q36 31 50 22 Q50 39 64 35 Q78 55 50 77 Z M50 64 Q42 53 52 45 Q53 57 60 55 Q61 63 50 64 Z"/>',
+            Legendary: '<path d="M28 63 H72 L66 39 L57 48 L50 25 L43 48 L34 39 Z M28 68 H72 M39 57 H61"/>'
+        };
+
+        const symbol = numberOne
+            ? '<path d="M50 22 L56 39 L75 39 L60 51 L66 72 L50 61 L34 72 L40 51 L25 39 L44 39 Z M50 34 V57"/>'
+            : symbols[rank] || symbols.Recruit;
+
+        const points = [
+            [50, 8], [86, 25], [92, 62],
+            [50, 92], [8, 62], [14, 25]
+        ];
+
+        const outline = numberOne
+            ? "50,5 91,27 91,70 50,95 9,70 9,27"
+            : points.map(p => p.join(",")).join(" ");
+
+        const divisionMarks = numberOne
+            ? ""
+            : Array.from({ length: DIVISIONS.indexOf(division) + 1 }, (_, i) =>
+                `<path d="M${40 + i * 5} 83 l3 4 l3 -4" />`
+            ).join("");
+
+        return `
+            <svg viewBox="0 0 100 100"
+                 xmlns="http://www.w3.org/2000/svg"
+                 role="img" aria-label="${escapeHTML(rank)} badge">
+                <defs>
+                    <linearGradient id="xr47metal" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#ffffff" stop-opacity=".55"/>
+                        <stop offset=".5" stop-color="${color}"/>
+                        <stop offset="1" stop-color="#111820"/>
+                    </linearGradient>
+                </defs>
+                <polygon points="${outline}"
+                    fill="#111820"
+                    stroke="${numberOne ? "#E4B83E" : color}"
+                    stroke-width="${numberOne ? 5 : 3}"/>
+                <polygon points="50,15 79,32 79,60 50,83 21,60 21,32"
+                    fill="url(#xr47metal)"
+                    stroke="#ffffff"
+                    stroke-opacity=".45"
+                    stroke-width="1.5"/>
+                <g fill="none"
+                   stroke="${numberOne ? "#FFFFFF" : "#101820"}"
+                   stroke-width="3"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                    ${symbol}
+                </g>
+                <g fill="none" stroke="${numberOne ? "#E4B83E" : color}"
+                   stroke-width="2">
+                    ${divisionMarks}
+                </g>
+            </svg>
+        `;
+    }
+
+    async function getRemote(key) {
+        const response = await fetch(
+            API + "/get/" + encodeURIComponent(key),
+            { cache: "no-store" }
+        );
+
+        if (response.status === 404) return null;
+
+        if (!response.ok) {
+            throw new Error("Storage GET failed: " + response.status);
+        }
+
+        const result = await response.json();
+        return result.value ?? null;
+    }
+
+    async function putRemote(key, value) {
+        const response = await fetch(
+            API + "/set/" + encodeURIComponent(key) + "?ttl=31536000",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(value)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error("Storage POST failed: " + response.status);
+        }
+
+        return response.json();
+    }
+
+    async function loadCloudProfile() {
+        try {
+            const cloud = await getRemote(
+                PLAYER_KEY_PREFIX + profile.id
+            );
+
+            if (cloud && Number.isFinite(cloud.rating)) {
+                if ((cloud.updatedAt || 0) > (profile.updatedAt || 0)) {
+                    profile = {
+                        ...profile,
+                        ...cloud,
+                        id: profile.id
+                    };
+
+                    saveLocal();
+                }
+            }
+
+            return true;
+        } catch (error) {
+            console.warn("[XR-47 Ranked] Profile sync failed:", error);
+            return false;
+        }
+    }
+
+    async function fetchLeaderboard() {
+        try {
+            const data = await getRemote(LEADERBOARD_KEY);
+
+            leaderboard = Array.isArray(data) ? data : [];
+            leaderboardAvailable = true;
+
+            return true;
+        } catch (error) {
+            leaderboardAvailable = false;
+
+            console.warn(
+                "[XR-47 Ranked] Leaderboard unavailable:",
+                error
+            );
+
+            return false;
+        }
+    }
+
+    function sortLeaderboard(list) {
+        return list.sort((a, b) =>
+            (b.rating || 0) - (a.rating || 0) ||
+            (b.wins || 0) - (a.wins || 0) ||
+            (a.losses || 0) - (b.losses || 0)
+        );
+    }
+
+    async function saveRankedResult() {
+        if (!window.XR47RankedActive) return;
+
+        if (!window.XR47Online?.connected) {
+            return;
+        }
+
+        const playerCount = window.XR47Online.playerCount;
+
+        if (playerCount < 2) {
+            console.warn("[XR-47 Ranked] Not enough players.");
+            return;
+        }
+
+        const elapsed = Number(match?.elapsed);
+        const kills = Number(player?.kills);
+        const deaths = Number(player?.deaths);
+
+        // Basic plausibility checks. These are not server-side anti-cheat.
+        if (
+            !Number.isFinite(elapsed) ||
+            elapsed < 30 ||
+            elapsed > 3600 ||
+            !Number.isFinite(kills) ||
+            !Number.isFinite(deaths) ||
+            kills < 0 ||
+            deaths < 0 ||
+            kills > elapsed * 1.5 + 8 ||
+            deaths > elapsed * 2 + 10
+        ) {
+            console.warn("[XR-47 Ranked] Suspicious match result rejected.");
+            return;
+        }
+
+        const matchSignature = [
+            match.mapName,
+            Math.round(elapsed),
+            kills,
+            deaths,
+            match.killLimit
+        ].join("|");
+
+        if (lastProcessedMatch === matchSignature) return;
+        lastProcessedMatch = matchSignature;
+
+        const board = [player, ...(bots || [])]
+            .filter(f => f && Number.isFinite(Number(f.kills)))
+            .sort((a, b) => b.kills - a.kills);
+
+        const placement = board.findIndex(f => f === player);
+
+        if (placement < 0 || board.length < 2) return;
+
+        const performance =
+            (board.length - 1 - placement) / (board.length - 1);
+
+        const killBonus = Math.min(5, kills * 0.5);
+        const deathPenalty = Math.min(5, deaths * 0.25);
+
+        let change = Math.round(
+            (performance - 0.45) * 30 +
+            killBonus -
+            deathPenalty
+        );
+
+        change = Math.max(-20, Math.min(25, change));
+
+        const oldRating = profile.rating;
+        profile.rating = Math.max(0, profile.rating + change);
+
+        profile.matches++;
+        profile.kills += kills;
+        profile.deaths += deaths;
+
+        if (placement === 0) {
+            profile.wins++;
+        } else {
+            profile.losses++;
+        }
+
+        saveLocal();
+
+        leaderboardDirty = true;
+
+        // Personal profile saves immediately.
+        try {
+            await putRemote(
+                PLAYER_KEY_PREFIX + profile.id,
+                profile
+            );
+        } catch (error) {
+            console.warn("[XR-47 Ranked] Personal save failed:", error);
+        }
+
+        showResult(oldRating, profile.rating, change);
+    }
+
+    function showResult(oldRating, newRating, change) {
+        const oldRank = getRank(oldRating);
+        const newRank = getRank(newRating);
+
+        const overlay = document.createElement("div");
+
+        overlay.style.cssText = `
+            position:fixed;
+            inset:0;
+            z-index:100000;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background:rgba(0,0,0,.82);
+            font-family:monospace;
+        `;
+
+        overlay.innerHTML = `
+            <div style="
+                width:min(420px,90vw);
+                padding:28px;
+                text-align:center;
+                background:#111820;
+                border:1px solid #526273;
+                box-shadow:0 15px 60px #000;
+                color:#fff;
+            ">
+                <div style="letter-spacing:4px;color:#9eacbb">
+                    RANKED MATCH COMPLETE
+                </div>
+
+                <div style="width:110px;margin:18px auto">
+                    ${makeBadge(newRank.name, newRank.division)}
+                </div>
+
+                <h2 style="color:${newRank.color};margin:8px 0">
+                    ${escapeHTML(newRank.name)} ${newRank.division}
+                </h2>
+
+                <div style="font-size:25px;margin:14px">
+                    ${newRating} RP
+                </div>
+
+                <div style="
+                    color:${change >= 0 ? "#72d69a" : "#ff7777"};
+                    font-size:20px;
+                ">
+                    ${change >= 0 ? "+" : ""}${change} RP
+                </div>
+
+                <div style="color:#9eacbb;margin:15px 0">
+                    ${oldRank.name} ${oldRank.division}
+                    →
+                    ${newRank.name} ${newRank.division}
+                </div>
+
+                <button id="xr47RankResultClose" style="
+                    padding:12px 28px;
+                    color:#fff;
+                    background:#263b55;
+                    border:1px solid #8196aa;
+                    cursor:pointer;
+                    font-family:monospace;
+                ">CONTINUE</button>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        overlay.querySelector("#xr47RankResultClose").onclick =
+            () => overlay.remove();
+    }
+
+    // ---------------------------------------------------------
+    // RANKED MENU AND LEADERBOARD
+    // ---------------------------------------------------------
+
+    const style = document.createElement("style");
+
+    style.textContent = `
+        #xr47-ranked-panel {
+            position:fixed;
+            inset:0;
+            z-index:99998;
+            display:none;
+            align-items:center;
+            justify-content:center;
+            background:rgba(0,0,0,.86);
+            color:#e8edf2;
+            font-family:monospace;
+        }
+
+        #xr47-ranked-panel.active {
+            display:flex;
+        }
+
+        #xr47-ranked-card {
+            width:min(700px,94vw);
+            max-height:85vh;
+            overflow:auto;
+            background:#111820;
+            border:1px solid #526273;
+            padding:22px;
+            box-shadow:0 15px 60px #000;
+        }
+
+        #xr47-ranked-card button {
+            padding:10px 16px;
+            background:#263b55;
+            color:white;
+            border:1px solid #71869b;
+            cursor:pointer;
+            font-family:monospace;
+        }
+
+        .xr47-rank-row {
+            display:grid;
+            grid-template-columns:40px 1fr auto;
+            align-items:center;
+            gap:12px;
+            padding:9px;
+            border-bottom:1px solid #293744;
+        }
+
+        .xr47-rank-row.me {
+            background:#263b5544;
+            border-left:3px solid #E4B83E;
+        }
+
+        .xr47-rank-row svg {
+            width:34px;
+            height:34px;
+        }
+
+        .xr47-rank-muted {
+            color:#91a0ae;
+        }
+    `;
+
+    document.head.appendChild(style);
+
+    const panel = document.createElement("div");
+    panel.id = "xr47-ranked-panel";
+
+    panel.innerHTML = `
+        <div id="xr47-ranked-card">
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:10px;
+            ">
+                <h2 style="letter-spacing:3px;margin:0">
+                    XR-47 RANKED
+                </h2>
+                <button id="xr47-ranked-close">CLOSE</button>
+            </div>
+
+            <div id="xr47-ranked-profile"
+                 style="text-align:center;padding:22px 0">
+            </div>
+
+            <h3>GLOBAL LEADERBOARD</h3>
+            <div id="xr47-ranked-list">
+                Loading leaderboard...
+            </div>
+
+            <p class="xr47-rank-muted" style="font-size:11px">
+                Global standings refresh periodically.
+            </p>
+        </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    panel.querySelector("#xr47-ranked-close").onclick = () => {
+        panel.classList.remove("active");
+    };
+
+    async function renderPanel() {
+        panel.classList.add("active");
+
+        const rank = getRank(profile.rating);
+
+        panel.querySelector("#xr47-ranked-profile").innerHTML = `
+            <div style="width:105px;margin:auto">
+                ${makeBadge(rank.name, rank.division)}
+            </div>
+
+            <h2 style="color:${rank.color};margin:8px">
+                ${escapeHTML(rank.name)} ${rank.division}
+            </h2>
+
+            <div style="font-size:24px">
+                ${profile.rating} RP
+            </div>
+
+            <div class="xr47-rank-muted" style="margin-top:12px">
+                ${profile.wins} WINS ·
+                ${profile.losses} LOSSES ·
+                ${profile.matches} MATCHES
+            </div>
+        `;
+
+        panel.querySelector("#xr47-ranked-list").textContent =
+            "Loading leaderboard...";
+
+        await fetchLeaderboard();
+
+        const sorted = sortLeaderboard([...leaderboard]);
+
+        if (!sorted.length) {
+            panel.querySelector("#xr47-ranked-list").textContent =
+                "No ranked players have been recorded yet.";
+            return;
+        }
+
+        panel.querySelector("#xr47-ranked-list").innerHTML =
+            sorted.slice(0, 100).map((entry, index) => {
+                const isMe = entry.id === profile.id;
+                const entryRank = getRank(entry.rating || 0);
+                const numberOne = index === 0;
+
+                return `
+                    <div class="xr47-rank-row ${isMe ? "me" : ""}">
+                        <strong>${index + 1}</strong>
+
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div style="width:34px;height:34px">
+                                ${makeBadge(
+                                    entryRank.name,
+                                    entryRank.division,
+                                    numberOne
+                                )}
+                            </div>
+
+                            <div>
+                                <div style="color:${numberOne ? "#E4B83E" : entryRank.color}">
+                                    ${escapeHTML(entry.name || "UNKNOWN")}
+                                    ${numberOne ? " — #1" : ""}
+                                </div>
+                                <div class="xr47-rank-muted">
+                                    ${entryRank.name} ${entryRank.division}
+                                </div>
+                            </div>
+                        </div>
+
+                        <strong>${Number(entry.rating || 0)} RP</strong>
+                    </div>
+                `;
+            }).join("");
+    }
+	
+	// ---------------------------------------------------------
+// EARNED RANKED ACCESS
+// ---------------------------------------------------------
+
+const RANKED_UNLOCK_KEY = "xr47-ranked-unlock-v1-" + profile.id;
+
+function loadCasualProgress() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(RANKED_UNLOCK_KEY));
+
+        return {
+            matches: Math.max(0, Number(saved?.matches) || 0),
+            wins: Math.max(0, Number(saved?.wins) || 0)
+        };
+    } catch {
+        return { matches: 0, wins: 0 };
+    }
+}
+
+let casualProgress = loadCasualProgress();
+let rankedButton = null;
+
+function isRankedUnlocked() {
+    return casualProgress.matches >= 10 && casualProgress.wins >= 3;
+}
+
+function saveCasualProgress() {
+    try {
+        localStorage.setItem(
+            RANKED_UNLOCK_KEY,
+            JSON.stringify(casualProgress)
+        );
+    } catch (error) {
+        console.warn("[XR-47 Ranked] Could not save unlock progress:", error);
+    }
+
+    updateRankedButton();
+}
+
+function updateRankedButton() {
+    if (!rankedButton) return;
+
+    if (isRankedUnlocked()) {
+        rankedButton.textContent = "🏆  Ranked Match";
+        rankedButton.style.borderColor = "#E4B83E";
+    } else {
+        rankedButton.textContent =
+            `🔒  Ranked (${casualProgress.matches}/10 · ${casualProgress.wins}/3 wins)`;
+
+        rankedButton.style.borderColor = "#71869b";
+    }
+}
+
+    const menuButtons = document.querySelector(".menu-buttons");
+
+    if (menuButtons) {
+       rankedButton = document.createElement("button");
+
+rankedButton.className = "menu-button";
+rankedButton.style.borderColor = "#71869b";
+
+rankedButton.onclick = () => {
+    if (!isRankedUnlocked()) {
+        alert(
+            "RANKED LOCKED\n\n" +
+            "Complete 10 Casual matches and win at least 3.\n\n" +
+            `Matches: ${casualProgress.matches}/10\n` +
+            `Wins: ${casualProgress.wins}/3`
+        );
+        return;
+    }
+
+    if (!window.XR47Online) {
+        alert("XR-47 Online has not loaded.");
+        return;
+    }
+
+    window.XR47RankedActive = true;
+    window.XR47Online.start();
+};
+
+updateRankedButton();
+menuButtons.appendChild(rankedButton);
+    }
+
+    // ---------------------------------------------------------
+    // MATCH-END INTEGRATION
+    // ---------------------------------------------------------
+
+  // ---------------------------------------------------------
+// MATCH-END INTEGRATION
+// ---------------------------------------------------------
+
+const originalFinishMatch = finishMatch;
+
+finishMatch = function() {
+    const wasRanked = window.XR47RankedActive;
+    const wasNewCompletion = !!match && !match.ended;
+
+    // Capture the Casual result before the original function changes state.
+    let casualWon = false;
+
+    if (!wasRanked && wasNewCompletion) {
+        const board = [player, ...(bots || [])]
+            .filter(Boolean)
+            .sort((a, b) => (b.kills || 0) - (a.kills || 0));
+
+        casualWon = board[0] === player;
+    }
+
+    const result = originalFinishMatch();
+
+    if (wasRanked) {
+        saveRankedResult().catch(error => {
+            console.error("[XR-47 Ranked] Result error:", error);
+        });
+
+        window.XR47RankedActive = false;
+    } else if (wasNewCompletion) {
+        casualProgress.matches++;
+
+        if (casualWon) {
+            casualProgress.wins++;
+        }
+
+        saveCasualProgress();
+
+        console.log(
+            `[XR-47 Ranked] Casual progress: ` +
+            `${casualProgress.matches}/10 matches, ` +
+            `${casualProgress.wins}/3 wins`
+        );
+    }
+
+    return result;
+};
+
+    // ---------------------------------------------------------
+    // PERIODIC GLOBAL LEADERBOARD SYNC
+    // ---------------------------------------------------------
+
+    async function syncLeaderboard() {
+        if (!leaderboardDirty) return;
+
+        const loaded = await fetchLeaderboard();
+
+        // Never overwrite a leaderboard we couldn't retrieve.
+        if (!loaded) return;
+
+        const merged = new Map();
+
+        for (const entry of leaderboard) {
+            if (entry && entry.id) {
+                merged.set(entry.id, entry);
+            }
+        }
+
+        merged.set(profile.id, {
+            id: profile.id,
+            name: profile.name,
+            rating: profile.rating,
+            wins: profile.wins,
+            losses: profile.losses,
+            matches: profile.matches,
+            updatedAt: profile.updatedAt
+        });
+
+        const updated = sortLeaderboard(
+            [...merged.values()]
+        ).slice(0, 100);
+
+        try {
+            await putRemote(LEADERBOARD_KEY, updated);
+            leaderboard = updated;
+            leaderboardDirty = false;
+        } catch (error) {
+            console.warn(
+                "[XR-47 Ranked] Global leaderboard update failed:",
+                error
+            );
+        }
+    }
+
+    // Pull the personal profile and leaderboard when the system loads.
+    loadCloudProfile().then(fetchLeaderboard);
+
+    // Only publish the shared leaderboard every ten minutes.
+    setInterval(syncLeaderboard, 10 * 60 * 1000);
+
+    // Expose a small public API for debugging and future UI additions.
+    window.XR47Ranked = {
+        get profile() {
+            return { ...profile };
+        },
+
+        get rank() {
+            return getRank(profile.rating);
+        },
+
+        open: renderPanel,
+
+        refresh: fetchLeaderboard,
+
+        get leaderboard() {
+            return [...leaderboard];
+        }
+    };
+
+})();
+</script>
+</body>
+</html>
